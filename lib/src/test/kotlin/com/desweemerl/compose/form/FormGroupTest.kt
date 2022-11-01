@@ -3,173 +3,219 @@ package com.desweemerl.compose.form
 import com.desweemerl.compose.form.validators.ValidatorPattern
 import com.desweemerl.compose.form.validators.ValidatorRequired
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
 import org.junit.Test
 
 
-class FormGroupTest {
-    @Test
-    @ExperimentalCoroutinesApi
-    fun formGroupValues() = runTest {
-        val form = FormGroupBuilder()
+class FormGroupTransformValueTest :
+    FormControlTest<Map<String, Any>>(
+        FormGroupBuilder()
             .withControl("first_name", textControl(""))
             .withControl("last_name", textControl())
             .build()
+    ) {
 
-        var actualValue = mapOf<String, Any>()
-
-        val collectJob = launch(UnconfinedTestDispatcher()) {
-            form.state.collect { state ->
-                actualValue = state.value
-            }
-        }
-
-        val expectation = mutableMapOf(
+    @Test
+    fun `When form is initialized expect state has the initial value`() {
+        val expectation = mapOf(
             Pair("first_name", ""),
             Pair("last_name", ""),
         )
 
-        assertEquals(expectation, actualValue)
+        assertMatch(expectation, control.state.value)
+    }
 
-        form.getControl("first_name")?.transformValue { "test" }
-        expectation["first_name"] = "test"
+    @Test
+    @ExperimentalCoroutinesApi
+    fun `When a control is updated expect state and callback have the new value`() = runTest {
+        val expectation = mutableMapOf(
+            Pair("first_name", "test"),
+            Pair("last_name", ""),
+        )
 
-        form.transformValue { value ->
-            value.plus(Pair("new_field", "new_value"))
-        }
+        (control as FormGroupControl).getControl("first_name")?.transformValue { "test" }
 
-        expectation["new_field"] = "new_value"
-        assertEquals(expectation, actualValue)
-
-        form.transformValue { value ->
-            value.plus(Pair("first_name", "${value["first_name"]}_bis"))
-        }
+        assertMatch(expectation, control.state.value)
+        assertMatch(expectation, state?.value)
 
         expectation["first_name"] = "test_bis"
-        assertEquals(expectation, actualValue)
+        control.transformValue { value ->
+            value.plus(
+                Pair(
+                    "first_name",
+                    "${value["first_name"]}_bis"
+                )
+            )
+        }
 
-        collectJob.cancel()
+        assertMatch(expectation, control.state.value)
+        assertMatch(expectation, state?.value)
     }
 
     @Test
     @ExperimentalCoroutinesApi
-    fun formGroupNested() = runTest {
-        val detailsForm = FormGroupBuilder()
-            .withControl("option", textControl(""))
-            .build()
+    fun `When form is updated with an additional parameter expect state and callback include that parameter`() =
+        runTest {
+            val expectation = mapOf(
+                Pair("first_name", ""),
+                Pair("last_name", ""),
+                Pair("new_field", "new_value"),
+            )
+
+            control.transformValue { value -> value.plus(Pair("new_field", "new_value")) }
+
+            assertMatch(expectation, control.state.value)
+            assertMatch(expectation, state?.value)
+        }
+}
 
 
-        val form = FormGroupBuilder()
+class NestedFormGroupTest :
+    FormControlTest<Map<String, Any>>(
+        FormGroupBuilder()
             .withControl("first_name", textControl(""))
             .withControl("last_name", textControl())
-            .withControl("details", detailsForm)
+            .withControl(
+                "details", FormGroupBuilder()
+                    .withControl("option", textControl(""))
+                    .build()
+            )
             .build()
+    ) {
 
-        var actualValue = mapOf<String, Any>()
-
-        val collectJob = launch(UnconfinedTestDispatcher()) {
-            form.state.collect { state ->
-                actualValue = state.value
-            }
-        }
-
-        val expectationDetails = mutableMapOf<String, Any>(
-            Pair("option", "")
-        )
-
-        val expectation = mutableMapOf(
+    @Test
+    fun `When form is initialized expect state has the initial value`() {
+        val expectation = mapOf(
             Pair("first_name", ""),
             Pair("last_name", ""),
-            Pair("details", expectationDetails),
+            Pair("details", mapOf(Pair("option", ""))),
         )
 
-        assertEquals(expectation, actualValue)
-
-        detailsForm.transformValue { value -> value.plus(Pair("option", "my option")) }
-        expectationDetails["option"] = "my option"
-
-        assertEquals(expectation, actualValue)
-
-        form.transformValue { value -> value.plus(Pair("first_name", "test")) }
-        expectation["first_name"] = "test"
-
-        assertEquals(expectation, actualValue)
-
-        collectJob.cancel()
+        assertMatch(expectation, control.state.value)
     }
 
     @Test
     @ExperimentalCoroutinesApi
-    fun formGroupValidation() = runTest {
-        val detailsForm = FormGroupBuilder()
-            .withControl("option", textControl("", arrayOf(ValidatorRequired())))
-            .build()
+    fun `When the child form is updated expect state and callback have the new value`() = runTest {
+        val expectation = mapOf(
+            Pair("first_name", ""),
+            Pair("last_name", ""),
+            Pair("details", mapOf(Pair("option", "my option"))),
+        )
 
-        val firstNameControl = textControl("", arrayOf(
-            ValidatorRequired(),
-            ValidatorPattern("^[0-9a-z]$"),
-        ))
+        ((control as FormGroupControl).getControl("details") as FormGroupControl)
+            .transformValue { value -> value.plus(Pair("option", "my option")) }
 
-        val form = FormGroupBuilder()
-            .withControl("first_name", firstNameControl)
-            .withControl("last_name", textControl())
-            .withControl("details", detailsForm)
-            .build()
+        assertMatch(expectation, control.state.value)
+        assertMatch(expectation, state?.value)
+    }
 
-        var errors: Errors = listOf()
+    @Test
+    @ExperimentalCoroutinesApi
+    fun `When the parent form is updated expect state and callback have the new value`() = runTest {
+        val expectation = mapOf(
+            Pair("first_name", "test"),
+            Pair("last_name", ""),
+            Pair("details", mapOf(Pair("option", ""))),
+        )
 
-        val collectJob = launch(UnconfinedTestDispatcher()) {
-            form.state.collect { state ->
-                errors = state.errors
-            }
+        (control as FormGroupControl).transformValue { value ->
+            value.plus(
+                Pair(
+                    "first_name",
+                    "test"
+                )
+            )
         }
 
-        val controlErrors1 = arrayOf(
-            ValidationError("pattern", "wrong value"),
-            ValidationError("required", "value required")
-        )
-
-        val formErrors1 = arrayOf(
-            ValidationError("pattern", "wrong value", Path("first_name")),
-            ValidationError("required", "value required", Path("first_name"))
-        )
-
-        val formErrors2 = formErrors1.plus(
-            ValidationError("required", "value required", Path("details", "option"))
-        )
-
-        assertArrayEquals(controlErrors1, firstNameControl.validate().toTypedArray())
-        assertArrayEquals(formErrors1, errors.toTypedArray())
-
-        assertArrayEquals(formErrors2, form.validate().toTypedArray())
-        assertArrayEquals(formErrors2, errors.toTypedArray())
-
-        firstNameControl.transformValue{ "héllo!>" }
-
-        val controlErrors2 = arrayOf(
-            ValidationError("pattern", "wrong value"),
-        )
-
-        val formErrors3 = arrayOf(
-            ValidationError("pattern", "wrong value", Path("first_name")),
-        )
-
-        val formErrors4 = formErrors3.plus(
-            ValidationError("required", "value required", Path("details", "option"))
-        )
-
-        form.clearErrors()
-
-        assertArrayEquals(controlErrors2, firstNameControl.validate().toTypedArray())
-        assertArrayEquals(formErrors3, errors.toTypedArray())
-
-        assertArrayEquals(formErrors4, form.validate().toTypedArray())
-        assertArrayEquals(formErrors4, errors.toTypedArray())
-
-        collectJob.cancel()
+        assertMatch(expectation, control.state.value)
+        assertMatch(expectation, state?.value)
     }
+}
+
+class FormGroupValidationTest :
+    FormControlTest<Map<String, Any>>(
+        FormGroupBuilder()
+            .withControl(
+                "first_name", textControl(
+                    "", arrayOf(
+                        ValidatorRequired(),
+                        ValidatorPattern("^[0-9a-z]$"),
+                    )
+                )
+            )
+            .withControl("last_name", textControl())
+            .withControl(
+                "details", FormGroupBuilder()
+                    .withControl("option", textControl("", arrayOf(ValidatorRequired())))
+                    .build()
+            )
+            .build()
+    ) {
+
+    private val firstNameControl: IFormControl<String>
+        @Suppress("UNCHECKED_CAST")
+        get() = (control as FormGroupControl).getControl("first_name") as FormControl<String>
+
+    @Test
+    @ExperimentalCoroutinesApi
+    fun `When a control has errors and validation is done on that control expect states on form and control have errors of the control`() =
+        runTest {
+            val controlErrors = listOf(
+                ValidationError("pattern", "wrong value"),
+                ValidationError("required", "value required"),
+            )
+
+            val formErrors = listOf(
+                ValidationError("pattern", "wrong value", Path("first_name")),
+                ValidationError("required", "value required", Path("first_name")),
+            )
+
+            assertMatchErrors(controlErrors, firstNameControl.validate().errors)
+            assertMatchErrors(formErrors, control.state.errors)
+        }
+
+    @Test
+    @ExperimentalCoroutinesApi
+    fun `When a control has errors and validation is done on the form expect states on form and control have all errors`() =
+        runTest {
+            val formErrors = listOf(
+                ValidationError("pattern", "wrong value", Path("first_name")),
+                ValidationError("required", "value required", Path("first_name")),
+                ValidationError("required", "value required", Path("details", "option")),
+            )
+
+            assertMatchErrors(formErrors, control.validate().errors)
+            assertMatchErrors(formErrors, state?.errors)
+        }
+
+    @Test
+    @ExperimentalCoroutinesApi
+    fun `When a control is updated with wrong value expect states on form and control have errors of the control`() =
+        runTest {
+            val controlErrors = listOf(
+                ValidationError("pattern", "wrong value"),
+            )
+
+            val formErrors = listOf(
+                ValidationError("pattern", "wrong value", Path("first_name")),
+            )
+
+            assertMatchErrors(controlErrors, firstNameControl.transformValue { "héllo!>" }.errors)
+            assertMatchErrors(formErrors, control.state.errors)
+        }
+
+    @Test
+    @ExperimentalCoroutinesApi
+    fun `When a control is updated with wrong value and validation is done on the form expect form state has all errors`() =
+        runTest {
+            val formErrors = listOf(
+                ValidationError("pattern", "wrong value", Path("first_name")),
+                ValidationError("required", "value required", Path("details", "option")),
+            )
+
+            firstNameControl.transformValue { "héllo!>" }
+            assertMatchErrors(formErrors, control.validate().errors)
+            assertMatchErrors(formErrors, control.state.errors)
+        }
 }
