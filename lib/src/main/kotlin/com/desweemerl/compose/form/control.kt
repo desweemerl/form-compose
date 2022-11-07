@@ -2,40 +2,32 @@ package com.desweemerl.compose.form
 
 import com.desweemerl.compose.form.validators.FormValidators
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 
-typealias FormStateCallback<V> = Callback<IFormState<V>>
+typealias FormStateCallback<V> = Callback<FormState<V>>
 
 interface IFormControl<V> {
     val validators: FormValidators<V>
-    val state: IFormState<V>
-    val stateFlow: StateFlow<IFormState<V>>
+    val state: FormState<V>
 
     suspend fun registerCallback(callback: FormStateCallback<V>)
     suspend fun unregisterCallback(callback: FormStateCallback<V>)
 
-    suspend fun transformValue(transform: (value: V) -> V): IFormState<V>
-    suspend fun validate(): IFormState<V>
+    suspend fun transformValue(transform: (value: V) -> V): FormState<V>
+    suspend fun validate(): FormState<V>
 }
 
 abstract class AbstractFormControl<V>(
-    initialState: IFormState<V>
+    initialState: FormState<V>
 ) : IFormControl<V> {
     private val stateMutex = Mutex()
+    private var _state = initialState
+    override val state: FormState<V>
+        get() = _state
 
-    override val state: IFormState<V>
-        get() = stateFlow.value
-
-    private val _stateFlow = MutableStateFlow(initialState)
-    override val stateFlow = _stateFlow.asStateFlow()
-
-    private val callbacks = Callbacks<IFormState<V>>()
+    private val callbacks = Callbacks<FormState<V>>()
 
     override suspend fun registerCallback(callback: FormStateCallback<V>) =
         callbacks.register(callback)
@@ -43,21 +35,20 @@ abstract class AbstractFormControl<V>(
     override suspend fun unregisterCallback(callback: FormStateCallback<V>) =
         callbacks.unregister(callback)
 
-    internal suspend fun updateState(transform: (state: IFormState<V>) -> IFormState<V>): IFormState<V> =
+    internal suspend fun updateState(transform: (state: FormState<V>) -> FormState<V>): FormState<V> =
         stateMutex.withLock {
-            _stateFlow.getAndUpdate { state -> transform(state) }
+            _state = transform(state)
             broadcastState(state)
             state
         }
 
-    private suspend fun broadcastState(state: IFormState<V>) {
+    private suspend fun broadcastState(state: FormState<V>) {
         callbacks.broadcast(state)
-        _stateFlow.emit(state)
     }
 }
 
 class FormControl<V>(
-    initialState: IFormState<V>,
+    initialState: FormState<V>,
     override val validators: FormValidators<V>,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
 ) : AbstractFormControl<V>(initialState) {
@@ -65,7 +56,7 @@ class FormControl<V>(
     private var validationJob: Job? = null
     private var updateJob: Job? = null
 
-    override suspend fun transformValue(transform: (value: V) -> V): IFormState<V> {
+    override suspend fun transformValue(transform: (value: V) -> V): FormState<V> {
         transformJob?.cancel()
         transformJob = scope.launch {
             updateState { state -> state.withValue(transform(state.value)) }
@@ -76,15 +67,14 @@ class FormControl<V>(
         return state
     }
 
-    override suspend fun validate(): IFormState<V> =
+    override suspend fun validate(): FormState<V> =
         liveValidate(true)
 
-    private suspend fun liveValidate(validationRequested: Boolean = false): IFormState<V> {
+    private suspend fun liveValidate(validationRequested: Boolean = false): FormState<V> {
         validationJob?.cancel()
         validationJob = scope.launch {
             val initialState = updateState { state ->
                 state
-                    .clearErrors()
                     .markAsValidating(validationRequested)
                     .requestValidation(validationRequested)
             }
@@ -113,7 +103,6 @@ class FormControl<V>(
             } catch (ex: Exception) {
                 updateState { state ->
                     state
-                        .clearErrors()
                         .markAsValidating(false)
                         .requestValidation(
                             state.validationRequested && ex is CancellationException
@@ -128,7 +117,7 @@ class FormControl<V>(
     }
 
 
-    fun update(newState: IFormState<V>) {
+    fun update(newState: FormState<V>) {
         updateJob?.cancel()
         transformJob?.cancel()
 
