@@ -13,7 +13,7 @@ class ValidatorPattern(
     override val message: String = defaultMessage,
 ) : FormValidator<String>(message = message) {
     override suspend fun validate(state: FormState<String>): ValidationError? =
-        if (!regex.matches(state.value)) {
+        if (state.value.isNotEmpty() && !regex.matches(state.value)) {
             ValidationError("pattern", message)
         } else {
             null
