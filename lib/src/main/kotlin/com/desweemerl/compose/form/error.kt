@@ -40,9 +40,16 @@ fun ValidationErrors.replace(path: Path, errors: ValidationErrors): ValidationEr
         })
 
 fun ValidationErrors.hasErrorOfType(type: String): Boolean = any { error -> error.type == type }
+
 fun ValidationErrors.hasErrorOfType(type: String, path: Path): Boolean = any { error ->
     error.type == type && error.path.includePath(path)
 }
+
+fun ValidationErrors.withPath(path: Path): ValidationErrors =
+    filter { error -> error.path == path }
+
+fun ValidationErrors.withEmptyPath(): ValidationErrors =
+    filter { error -> error.path.isEmpty() }
 
 fun ValidationErrors.first(): ValidationError? = null
 
