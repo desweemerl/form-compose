@@ -86,9 +86,9 @@ class FormControl<V>(
                 // Execute all validations at same time
                 validators.map { validator ->
                     scope.launch {
-                        validator.validate(initialState)?.let { error ->
+                        validator.validate(initialState)?.let { validationErrors ->
                             mutex.withLock {
-                                errors.add(error)
+                                errors.addAll(validationErrors)
                             }
                         }
                     }

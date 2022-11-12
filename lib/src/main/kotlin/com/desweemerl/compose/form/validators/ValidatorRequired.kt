@@ -5,9 +5,9 @@ import com.desweemerl.compose.form.*
 class ValidatorRequired(
     override val message: String = "value required"
 ) : FormValidator<String>(message = message) {
-    override suspend fun validate(state: FormState<String>): ValidationError? =
+    override suspend fun validate(state: FormState<String>): ValidationErrors? =
         if (state.value.trim().isEmpty()) {
-            ValidationError("required", message)
+            listOf(ValidationError("required", message))
         } else {
             null
         }

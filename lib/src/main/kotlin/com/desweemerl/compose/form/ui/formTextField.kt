@@ -100,6 +100,7 @@ fun FormTextField(
     }
 }
 
+@Suppress("UNCHECKED_CAST")
 @Composable
 fun IFormControl<Any>?.asTextField(
     label: String? = null,
