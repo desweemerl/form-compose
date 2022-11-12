@@ -1,10 +1,8 @@
 package com.desweemerl.compose.form
 
-import org.junit.ComparisonFailure
-
 fun <V> assertMatch(expected: V, actual: V) {
     if (expected != actual) {
-        throw ComparisonFailure("", expected.toString(), actual.toString())
+        throw AssertionError("errors don't match:\nexpected=$expected\nactual=$actual")
     }
 }
 

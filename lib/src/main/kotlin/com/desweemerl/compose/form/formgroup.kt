@@ -68,6 +68,7 @@ class FormGroupControl(
 
                 state.withValue(patchValue)
             }
+            liveValidate()
         }
         transformJob?.join()
 
