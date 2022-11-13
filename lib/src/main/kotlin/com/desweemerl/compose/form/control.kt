@@ -5,28 +5,28 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 
-typealias FormStateCallback<V> = Callback<FormState<V>>
+typealias FormStateCallback<V> = Callback<IFormState<V>>
 
 interface IFormControl<V> {
     val validators: FormValidators<V>
-    val state: FormState<V>
+    val state: IFormState<V>
 
     suspend fun registerCallback(callback: FormStateCallback<V>)
     suspend fun unregisterCallback(callback: FormStateCallback<V>)
 
-    suspend fun transformValue(transform: (value: V) -> V): FormState<V>
-    suspend fun validate(): FormState<V>
+    suspend fun transformValue(transform: (value: V) -> V): IFormState<V>
+    suspend fun validate(): IFormState<V>
 }
 
 abstract class AbstractFormControl<V>(
-    initialState: FormState<V>,
-    initialCallbacks: List<Callback<FormState<V>>>? = null,
+    initialState: IFormState<V>,
+    initialCallbacks: List<Callback<IFormState<V>>>? = null,
 ) : IFormControl<V> {
     private val stateMutex = Mutex()
-    internal var _state = initialState
+    internal var internalState = initialState
 
-    override val state: FormState<V>
-        get() = _state
+    override val state: IFormState<V>
+        get() = internalState
 
     private val callbacks = Callbacks(initialCallbacks)
 
@@ -36,14 +36,14 @@ abstract class AbstractFormControl<V>(
     override suspend fun unregisterCallback(callback: FormStateCallback<V>) =
         callbacks.unregister(callback)
 
-    internal suspend fun updateState(transform: (state: FormState<V>) -> FormState<V>): FormState<V> =
+    internal suspend fun updateState(broadCast: Boolean = true, transform: (state: IFormState<V>) -> IFormState<V>): IFormState<V> =
         stateMutex.withLock {
-            _state = transform(_state)
-            broadcastState(state)
-            _state
+            internalState = transform(internalState)
+            if (broadCast) { broadcastState(state) }
+            internalState
         }
 
-    internal suspend fun broadcastState(state: FormState<V>) {
+    internal suspend fun broadcastState(state: IFormState<V>) {
         callbacks.broadcast(state)
     }
 }

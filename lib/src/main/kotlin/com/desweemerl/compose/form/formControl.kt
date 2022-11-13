@@ -14,7 +14,7 @@ internal class FormControl<V>(
     private var validationJob: Job? = null
     private var updateJob: Job? = null
 
-    override suspend fun transformValue(transform: (value: V) -> V): FormState<V> {
+    override suspend fun transformValue(transform: (value: V) -> V): IFormState<V> {
         transformJob?.cancel()
         transformJob = scope.launch {
             updateState { state -> state.withValue(transform(state.value)) }
@@ -25,10 +25,10 @@ internal class FormControl<V>(
         return state
     }
 
-    override suspend fun validate(): FormState<V> =
+    override suspend fun validate(): IFormState<V> =
         liveValidate(true)
 
-    private suspend fun liveValidate(validationRequested: Boolean = false): FormState<V> {
+    private suspend fun liveValidate(validationRequested: Boolean = false): IFormState<V> {
         validationJob?.cancel()
         validationJob = scope.launch {
             val initialState = updateState { state ->
@@ -72,7 +72,7 @@ internal class FormControl<V>(
         return state
     }
 
-    fun update(newState: FormState<V>) {
+    fun update(newState: IFormState<V>) {
         updateJob?.cancel()
         transformJob?.cancel()
 

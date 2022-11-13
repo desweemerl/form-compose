@@ -1,13 +1,13 @@
 package com.desweemerl.compose.form.ui
 
 import androidx.compose.runtime.*
-import com.desweemerl.compose.form.FormState
 import com.desweemerl.compose.form.FormStateCallback
 import com.desweemerl.compose.form.IFormControl
+import com.desweemerl.compose.form.IFormState
 import kotlinx.coroutines.launch
 
 @Composable
-fun <V> IFormControl<V>.asMutableState(): MutableState<FormState<V>> {
+fun <V> IFormControl<V>.asMutableState(): MutableState<IFormState<V>> {
     val state = remember() { mutableStateOf(this.state) }
     val scope = rememberCoroutineScope()
 

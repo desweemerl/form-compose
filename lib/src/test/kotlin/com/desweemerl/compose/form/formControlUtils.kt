@@ -8,7 +8,7 @@ open class FormControlTest<V>(protected open val control: IFormControl<V>) {
     @ExperimentalCoroutinesApi
     private val scope = CoroutineScope(UnconfinedTestDispatcher())
 
-    protected var state: FormState<V>? = null
+    protected var state: IFormState<V>? = null
 
     @Before
     fun prepareTest() {
