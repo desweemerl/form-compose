@@ -1,19 +1,18 @@
 package com.desweemerl.compose.form
 
-import com.desweemerl.compose.form.validators.*
+import com.desweemerl.compose.form.validators.ValidatorPattern
+import com.desweemerl.compose.form.validators.ValidatorRequired
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 
-class FormGroupTransformValueTest :
-    FormControlTest<Map<String, Any>>(
-        FormGroupBuilder()
-            .withControl("first_name", textControl(""))
-            .withControl("last_name", textControl())
-            .build()
-    ) {
-
+class FormGroupTransformValueTest : FormGroupTest(
+    FormGroupBuilder()
+        .withControl("first_name", textControl(""))
+        .withControl("last_name", textControl())
+        .build()
+) {
     @Test
     fun `When form is initialized expect state has the initial value`() {
         val expectation = mapOf(
@@ -32,7 +31,7 @@ class FormGroupTransformValueTest :
             Pair("last_name", ""),
         )
 
-        (control as FormGroupControl).getControl("first_name")?.transformValue { "test" }
+        control.getControl("first_name")?.transformValue { "test" }
 
         assertMatch(expectation, control.state.value)
         assertMatch(expectation, state?.value)
@@ -69,18 +68,17 @@ class FormGroupTransformValueTest :
 }
 
 
-class NestedFormGroupTest :
-    FormControlTest<Map<String, Any>>(
-        FormGroupBuilder()
-            .withControl("first_name", textControl(""))
-            .withControl("last_name", textControl())
-            .withControl(
-                "details", FormGroupBuilder()
-                    .withControl("option", textControl(""))
-                    .build()
-            )
-            .build()
-    ) {
+class NestedFormGroupTest : FormGroupTest(
+    FormGroupBuilder()
+        .withControl("first_name", textControl(""))
+        .withControl("last_name", textControl())
+        .withControl(
+            "details", FormGroupBuilder()
+                .withControl("option", textControl(""))
+                .build()
+        )
+        .build()
+) {
 
     @Test
     fun `When form is initialized expect state has the initial value`() {
@@ -102,7 +100,7 @@ class NestedFormGroupTest :
             Pair("details", mapOf(Pair("option", "my option"))),
         )
 
-        ((control as FormGroupControl).getControl("details") as FormGroupControl)
+        (control.getControl("details") as FormGroupControl)
             .transformValue { value -> value.plus(Pair("option", "my option")) }
 
         assertMatch(expectation, control.state.value)
@@ -118,7 +116,7 @@ class NestedFormGroupTest :
             Pair("details", mapOf(Pair("option", ""))),
         )
 
-        (control as FormGroupControl).transformValue { value ->
+        control.transformValue { value ->
             value.plus(
                 Pair(
                     "first_name",
@@ -132,29 +130,28 @@ class NestedFormGroupTest :
     }
 }
 
-class FormGroupValidationTest :
-    FormControlTest<Map<String, Any>>(
-        FormGroupBuilder()
-            .withControl(
-                "first_name", textControl(
-                    "", arrayOf(
-                        ValidatorRequired(),
-                        ValidatorPattern("^[0-9a-z]$"),
-                    )
+class FormGroupValidationTest : FormGroupTest(
+    FormGroupBuilder()
+        .withControl(
+            "first_name", textControl(
+                "", arrayOf(
+                    ValidatorRequired(),
+                    ValidatorPattern("^[0-9a-z]$"),
                 )
             )
-            .withControl("last_name", textControl())
-            .withControl(
-                "details", FormGroupBuilder()
-                    .withControl("option", textControl("", arrayOf(ValidatorRequired())))
-                    .build()
-            )
-            .build()
-    ) {
+        )
+        .withControl("last_name", textControl())
+        .withControl(
+            "details", FormGroupBuilder()
+                .withControl("option", textControl("", arrayOf(ValidatorRequired())))
+                .build()
+        )
+        .build()
+) {
 
     private val firstNameControl: IFormControl<String>
         @Suppress("UNCHECKED_CAST")
-        get() = (control as FormGroupControl).getControl("first_name") as FormControl<String>
+        get() = control.getControl("first_name") as FormControl<String>
 
     @Test
     @ExperimentalCoroutinesApi
