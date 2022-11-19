@@ -1,5 +1,7 @@
 package com.desweemerl.compose.form
 
+import com.desweemerl.compose.form.controls.FormGroupBuilder
+import com.desweemerl.compose.form.controls.textControl
 import com.desweemerl.compose.form.validators.ValidatorPattern
 import com.desweemerl.compose.form.validators.ValidatorRequired
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -7,7 +9,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 
-class FormGroupTransformValueTest : FormGroupTest(
+class FormGroupSetValueTest : FormGroupControlTest(
     FormGroupBuilder()
         .withControl("first_name", textControl(""))
         .withControl("last_name", textControl())
@@ -31,13 +33,13 @@ class FormGroupTransformValueTest : FormGroupTest(
             Pair("last_name", ""),
         )
 
-        control.getControl("first_name")?.transformValue { "test" }
+        getTextField("first_name").setValue { "test" }
 
         assertMatch(expectation, control.state.value)
         assertMatch(expectation, state?.value)
 
         expectation["first_name"] = "test_bis"
-        control.transformValue { value ->
+        control.setValue { value ->
             value.plus(
                 Pair(
                     "first_name",
@@ -60,7 +62,7 @@ class FormGroupTransformValueTest : FormGroupTest(
                 Pair("new_field", "new_value"),
             )
 
-            control.transformValue { value -> value.plus(Pair("new_field", "new_value")) }
+            control.setValue { value -> value.plus(Pair("new_field", "new_value")) }
 
             assertMatch(expectation, control.state.value)
             assertMatch(expectation, state?.value)
@@ -68,7 +70,7 @@ class FormGroupTransformValueTest : FormGroupTest(
 }
 
 
-class NestedFormGroupTest : FormGroupTest(
+class NestedFormGroupTest : FormGroupControlTest(
     FormGroupBuilder()
         .withControl("first_name", textControl(""))
         .withControl("last_name", textControl())
@@ -100,8 +102,8 @@ class NestedFormGroupTest : FormGroupTest(
             Pair("details", mapOf(Pair("option", "my option"))),
         )
 
-        (control.getControl("details") as FormGroupControl)
-            .transformValue { value -> value.plus(Pair("option", "my option")) }
+        getFormGroupControl("details")
+            .setValue { value -> value.plus(Pair("option", "my option")) }
 
         assertMatch(expectation, control.state.value)
         assertMatch(expectation, state?.value)
@@ -116,7 +118,7 @@ class NestedFormGroupTest : FormGroupTest(
             Pair("details", mapOf(Pair("option", ""))),
         )
 
-        control.transformValue { value ->
+        control.setValue { value ->
             value.plus(
                 Pair(
                     "first_name",
@@ -130,7 +132,7 @@ class NestedFormGroupTest : FormGroupTest(
     }
 }
 
-class FormGroupValidationTest : FormGroupTest(
+class FormGroupValidationTest : FormGroupControlTest(
     FormGroupBuilder()
         .withControl(
             "first_name", textControl(
@@ -149,10 +151,6 @@ class FormGroupValidationTest : FormGroupTest(
         .build()
 ) {
 
-    private val firstNameControl: IFormControl<String>
-        @Suppress("UNCHECKED_CAST")
-        get() = control.getControl("first_name") as FormControl<String>
-
     @Test
     @ExperimentalCoroutinesApi
     fun `When a control has errors and validation is done on that control expect states on form and control have errors of the control`() =
@@ -165,7 +163,7 @@ class FormGroupValidationTest : FormGroupTest(
                 ValidationError("required", "value required", Path("first_name")),
             )
 
-            assertMatchErrors(controlErrors, firstNameControl.validate().errors)
+            assertMatchErrors(controlErrors, getTextField("first_name").validate().errors)
             assertMatchErrors(formErrors, control.state.errors)
         }
 
@@ -194,7 +192,10 @@ class FormGroupValidationTest : FormGroupTest(
                 ValidationError("pattern", "wrong value", Path("first_name")),
             )
 
-            assertMatchErrors(controlErrors, firstNameControl.transformValue { "héllo!>" }.errors)
+            assertMatchErrors(
+                controlErrors,
+                getTextField("first_name").setValue { "héllo!>" }.errors
+            )
             assertMatchErrors(formErrors, control.state.errors)
         }
 
@@ -207,7 +208,7 @@ class FormGroupValidationTest : FormGroupTest(
                 ValidationError("required", "value required", Path("details", "option")),
             )
 
-            firstNameControl.transformValue { "héllo!>" }
+            getTextField("first_name").setValue { "héllo!>" }
             assertMatchErrors(formErrors, control.validate().errors)
             assertMatchErrors(formErrors, control.state.errors)
         }

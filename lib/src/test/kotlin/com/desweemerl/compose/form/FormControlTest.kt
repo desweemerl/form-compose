@@ -1,6 +1,6 @@
 package com.desweemerl.compose.form
 
-import com.desweemerl.compose.form.ValidationError
+import com.desweemerl.compose.form.controls.textControl
 import com.desweemerl.compose.form.validators.ValidatorRequired
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -9,8 +9,8 @@ import kotlin.test.assertEquals
 
 val requiredError = listOf(ValidationError("required", "value required"))
 
-class FormControlTransformValueTest :
-    FormControlTest<String>(
+class FormFieldControlSetValueTest :
+    FormFieldControlTest<String>(
         textControl(initialValue = "initial", validators = arrayOf(ValidatorRequired()))
     ) {
 
@@ -30,7 +30,7 @@ class FormControlTransformValueTest :
         runTest {
             assertEquals(
                 "initial_next",
-                control.transformValue { value -> "${value}_next" }.value
+                control.setValue { value -> "${value}_next" }.value
             )
             assertEquals("initial_next", control.state.value)
         }
@@ -39,14 +39,17 @@ class FormControlTransformValueTest :
     @ExperimentalCoroutinesApi
     fun `When control is updated with wrong value expect result and state have error`() =
         runTest {
-            assertMatchErrors(requiredError, control.transformValue { "" }.errors)
+            assertMatchErrors(
+                requiredError,
+                control.setValue { "" }.errors
+            )
             assertMatchErrors(requiredError, control.state.errors)
             assertMatchErrors(requiredError, state?.errors)
         }
 }
 
-class FormControlValidationTest :
-    FormControlTest<String>(
+class FormFieldControlValidationTest :
+    FormFieldControlTest<String>(
         textControl(validators = arrayOf(ValidatorRequired()))
     ) {
 

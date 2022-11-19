@@ -1,6 +1,6 @@
 package com.desweemerl.compose.form.validators
 
-import com.desweemerl.compose.form.IFormState
+import com.desweemerl.compose.form.controls.FormState
 import com.desweemerl.compose.form.ValidationError
 import com.desweemerl.compose.form.ValidationErrors
 
@@ -12,8 +12,8 @@ fun ValidatorPattern(regex: String, message: String = defaultMessage): Validator
 class ValidatorPattern(
     val regex: Regex,
     override val message: String = defaultMessage,
-) : FormValidator<String>(message = message) {
-    override suspend fun validate(state: IFormState<String>): ValidationErrors? =
+) : AbstractValidator<FormState<String>>(message = message) {
+    override suspend fun validate(state: FormState<String>): ValidationErrors? =
         if (state.value.isNotEmpty() && !regex.matches(state.value)) {
             listOf(ValidationError("pattern", message))
         } else {
