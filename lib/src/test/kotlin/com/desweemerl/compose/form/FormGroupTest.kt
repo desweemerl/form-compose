@@ -1,7 +1,9 @@
 package com.desweemerl.compose.form
 
 import com.desweemerl.compose.form.controls.FormGroupBuilder
+import com.desweemerl.compose.form.controls.FormGroupState
 import com.desweemerl.compose.form.controls.textControl
+import com.desweemerl.compose.form.validators.Validator
 import com.desweemerl.compose.form.validators.ValidatorPattern
 import com.desweemerl.compose.form.validators.ValidatorRequired
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -210,6 +212,47 @@ class FormGroupValidationTest : FormGroupControlTest(
 
             getTextField("first_name").setValue { "héllo!>" }
             assertMatchErrors(formErrors, control.validate().errors)
+            assertMatchErrors(formErrors, control.state.errors)
+        }
+}
+
+class FormGroupValidationRequestedTest : FormGroupControlTest(
+    FormGroupBuilder()
+        .withControl(
+            "first_name", textControl(
+                "", arrayOf(
+                    ValidatorRequired(),
+                )
+            )
+        )
+        .withControl("last_name", textControl())
+        .withValidator(object : Validator<FormGroupState> {
+            override suspend fun validate(state: FormGroupState): ValidationErrors? {
+                val firstName = state.value["first_name"] as? String ?: ""
+                if (state.validationRequested && firstName != "test") {
+                    return listOf(ValidationError("custom", "value is not equal to 'test'"))
+                }
+
+                return null
+            }
+        })
+        .build()
+) {
+    @Test
+    @ExperimentalCoroutinesApi
+    fun `When a validation has been requested expect flag validationRequested dispatched to validators`() =
+        runTest {
+            val formErrors = listOf(
+                ValidationError("required", "value required", Path("first_name")),
+             )
+            val globalFormErrors = listOf(
+                ValidationError("custom", "value is not equal to 'test'"),
+            )
+
+            getTextField("first_name").setValue { "" }
+            assertMatchErrors(formErrors, control.state.errors)
+            assertMatchErrors(formErrors + globalFormErrors, control.validate().errors)
+            getTextField("first_name").markAsTouched()
             assertMatchErrors(formErrors, control.state.errors)
         }
 }
