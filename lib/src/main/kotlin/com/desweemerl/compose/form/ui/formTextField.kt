@@ -93,13 +93,12 @@ fun Control<*>?.asTextField(
     onEnter: (() -> Unit)? = null,
     testTag: String = "",
 ) = (this as? FormFieldControl<String>)?.let {
-    var state by asMutableState()
+    val state by stateFlow.collectAsState()
     val scope = rememberCoroutineScope()
 
     FormTextField(
         state = transformer(state),
         onStateChanged = { newState ->
-            state = newState
             scope.launch {
                 transform { newState }
             }

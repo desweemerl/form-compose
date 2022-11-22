@@ -29,7 +29,7 @@ class FormGroupSetValueTest : FormGroupControlTest(
 
     @Test
     @ExperimentalCoroutinesApi
-    fun `When a control is updated expect state and callback have the new value`() = runTest {
+    fun `When a control is updated expect state has the new value`() = runTest {
         val expectation = mutableMapOf(
             Pair("first_name", "test"),
             Pair("last_name", ""),
@@ -37,8 +37,7 @@ class FormGroupSetValueTest : FormGroupControlTest(
 
         getTextField("first_name").setValue { "test" }
 
-        assertMatch(expectation, control.state.value)
-        assertMatch(expectation, state?.value)
+        assertMatch(expectation, state.value)
 
         expectation["first_name"] = "test_bis"
         control.setValue { value ->
@@ -50,13 +49,12 @@ class FormGroupSetValueTest : FormGroupControlTest(
             )
         }
 
-        assertMatch(expectation, control.state.value)
-        assertMatch(expectation, state?.value)
+        assertMatch(expectation, state.value)
     }
 
     @Test
     @ExperimentalCoroutinesApi
-    fun `When form is updated with an additional parameter expect state and callback include that parameter`() =
+    fun `When form is updated with an additional parameter expect state includes that parameter`() =
         runTest {
             val expectation = mapOf(
                 Pair("first_name", ""),
@@ -65,9 +63,7 @@ class FormGroupSetValueTest : FormGroupControlTest(
             )
 
             control.setValue { value -> value.plus(Pair("new_field", "new_value")) }
-
-            assertMatch(expectation, control.state.value)
-            assertMatch(expectation, state?.value)
+            assertMatch(expectation, state.value)
         }
 }
 
@@ -92,12 +88,12 @@ class NestedFormGroupTest : FormGroupControlTest(
             Pair("details", mapOf(Pair("option", ""))),
         )
 
-        assertMatch(expectation, control.state.value)
+        assertMatch(expectation, state.value)
     }
 
     @Test
     @ExperimentalCoroutinesApi
-    fun `When the child form is updated expect state and callback have the new value`() = runTest {
+    fun `When the child form is updated expect state has the new value`() = runTest {
         val expectation = mapOf(
             Pair("first_name", ""),
             Pair("last_name", ""),
@@ -107,13 +103,12 @@ class NestedFormGroupTest : FormGroupControlTest(
         getFormGroupControl("details")
             .setValue { value -> value.plus(Pair("option", "my option")) }
 
-        assertMatch(expectation, control.state.value)
-        assertMatch(expectation, state?.value)
+        assertMatch(expectation, state.value)
     }
 
     @Test
     @ExperimentalCoroutinesApi
-    fun `When the parent form is updated expect state and callback have the new value`() = runTest {
+    fun `When the parent form is updated expect state has the new value`() = runTest {
         val expectation = mapOf(
             Pair("first_name", "test"),
             Pair("last_name", ""),
@@ -129,8 +124,7 @@ class NestedFormGroupTest : FormGroupControlTest(
             )
         }
 
-        assertMatch(expectation, control.state.value)
-        assertMatch(expectation, state?.value)
+        assertMatch(expectation, state.value)
     }
 }
 
@@ -166,7 +160,7 @@ class FormGroupValidationTest : FormGroupControlTest(
             )
 
             assertMatchErrors(controlErrors, getTextField("first_name").validate().errors)
-            assertMatchErrors(formErrors, control.state.errors)
+            assertMatchErrors(formErrors, state.errors)
         }
 
     @Test
@@ -179,7 +173,7 @@ class FormGroupValidationTest : FormGroupControlTest(
             )
 
             assertMatchErrors(formErrors, control.validate().errors)
-            assertMatchErrors(formErrors, state?.errors)
+            assertMatchErrors(formErrors, state.errors)
         }
 
     @Test
@@ -198,7 +192,7 @@ class FormGroupValidationTest : FormGroupControlTest(
                 controlErrors,
                 getTextField("first_name").setValue { "héllo!>" }.errors
             )
-            assertMatchErrors(formErrors, control.state.errors)
+            assertMatchErrors(formErrors, state.errors)
         }
 
     @Test
@@ -212,7 +206,7 @@ class FormGroupValidationTest : FormGroupControlTest(
 
             getTextField("first_name").setValue { "héllo!>" }
             assertMatchErrors(formErrors, control.validate().errors)
-            assertMatchErrors(formErrors, control.state.errors)
+            assertMatchErrors(formErrors, state.errors)
         }
 }
 
@@ -250,9 +244,9 @@ class FormGroupValidationRequestedTest : FormGroupControlTest(
             )
 
             getTextField("first_name").setValue { "" }
-            assertMatchErrors(formErrors, control.state.errors)
+            assertMatchErrors(formErrors, state.errors)
             assertMatchErrors(formErrors + globalFormErrors, control.validate().errors)
             getTextField("first_name").markAsTouched()
-            assertMatchErrors(formErrors, control.state.errors)
+            assertMatchErrors(formErrors, state.errors)
         }
 }

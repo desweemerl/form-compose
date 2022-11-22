@@ -1,7 +1,6 @@
 package com.desweemerl.compose.form.controls
 
 import com.desweemerl.compose.form.*
-import com.desweemerl.compose.form.validators.AbstractValidator
 import com.desweemerl.compose.form.validators.Validator
 import com.desweemerl.compose.form.validators.Validators
 import kotlinx.coroutines.*
@@ -25,36 +24,46 @@ fun Map<String, Control<FormState<Any>>>.dirty(): Boolean =
 class FormGroupControl(
     private val controls: Map<String, AbstractFormControl<FormState<Any>, Any>> = mapOf(),
     override val validators: Validators<FormGroupState> = arrayOf(),
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+    private var parentControl: FormGroupControl? = null,
 ) : AbstractFormControl<FormGroupState, Map<String, Any>>(FormGroupState(controls = controls)) {
     private var transformJob: Job? = null
     private var validationJob: Job? = null
 
     init {
-        scope.launch {
-            controls.entries.map { entry ->
-                entry.value.registerCallback { controlState ->
-                    try {
-                        scope.launch {
-                            updateState { formState -> formState.copy(controlsDirty = true) }
-
-                            if (!controlState.validating && !internalState.validating) {
-                                liveValidate()
-                            } else {
-                                broadcastState()
-                            }
-                        }
-                    } catch (_: Exception) {
-                    }
-                }
-            }
-        }
+        controls.values.forEach{ control -> control.bind(this) }
     }
 
     fun getControl(key: String): AbstractFormControl<FormState<Any>, Any>? = controls[key]
 
+    private suspend fun updateAndNotify(transformer: (state: FormGroupState) -> FormGroupState): FormGroupState {
+        val newState = updateState(transformer)
+        parentControl?.notifyStateChange()
+
+        return newState
+    }
+
+    internal suspend fun notifyStateChange() {
+        if (transformJob?.isActive != true && validationJob?.isActive != true) {
+            updateAndNotify { formState -> formState.copy(controlsDirty = true) }
+            liveValidate()
+        }
+    }
+
+    override fun bind(control: Control<*>) {
+        if (parentControl == null) {
+            if (control is FormGroupControl) {
+                parentControl = control
+            } else {
+                throw Exception("control must be a FormGroupControl")
+            }
+        } else {
+            throw Exception("control is already bound")
+        }
+    }
+
     override suspend fun transform(transformer: (state: FormGroupState) -> FormGroupState): FormGroupState {
-        transformJob?.cancel()
+        transformJob?.cancelAndJoin()
         transformJob = scope.launch {
             val newState = transformer(state)
 
@@ -84,8 +93,7 @@ class FormGroupControl(
                 }
                 .joinAll()
 
-            updateState { newState.copy(formTouched = null, formDirty = null) }
-
+            updateAndNotify { newState.copy(formTouched = null, formDirty = null) }
             liveValidate()
         }
         transformJob?.join()
@@ -97,9 +105,9 @@ class FormGroupControl(
         liveValidate(true)
 
     private suspend fun liveValidate(validationRequested: Boolean = false): FormGroupState {
-        validationJob?.cancel()
+        validationJob?.cancelAndJoin()
         validationJob = scope.launch {
-            updateState { state ->
+            updateAndNotify { state ->
                 state.copy(validating = true, validationRequested = validationRequested)
             }
 
@@ -134,7 +142,7 @@ class FormGroupControl(
 
                 jobs.joinAll()
 
-                updateState { state ->
+                updateAndNotify { state ->
                     state.copy(
                         formErrors = errors,
                         controlsDirty = true,
@@ -143,7 +151,7 @@ class FormGroupControl(
                     )
                 }
             } catch (ex: Exception) {
-                updateState { state ->
+                updateAndNotify { state ->
                     state.copy(
                         controlsDirty = true,
                         validating = false,
