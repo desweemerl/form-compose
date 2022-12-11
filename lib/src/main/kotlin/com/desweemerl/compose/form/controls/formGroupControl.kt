@@ -7,26 +7,26 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-fun Map<String, Control<FormState<Any>>>.getValues(): Map<String, Any> =
+fun Map<String, Control<FormState<Any?>>>.getValues(): Map<String, Any?> =
     entries.associate { entry -> Pair(entry.key, entry.value.state.value) }
 
-fun Map<String, Control<FormState<Any>>>.getErrors(): ValidationErrors =
+fun Map<String, Control<FormState<Any?>>>.getErrors(): ValidationErrors =
     entries
         .filter { entry -> entry.value.state.errors.isNotEmpty() }
         .map { entry -> entry.value.state.errors.prependPath(entry.key) }.flatten()
 
-fun Map<String, Control<FormState<Any>>>.touched(): Boolean =
+fun Map<String, Control<FormState<Any?>>>.touched(): Boolean =
     values.any { control -> control.state.touched }
 
-fun Map<String, Control<FormState<Any>>>.dirty(): Boolean =
+fun Map<String, Control<FormState<Any?>>>.dirty(): Boolean =
     values.any { control -> control.state.dirty }
 
 class FormGroupControl(
-    private val controls: Map<String, AbstractFormControl<FormState<Any>, Any>> = mapOf(),
+    private val controls: Map<String, AbstractFormControl<FormState<Any?>, Any?>> = mapOf(),
     override val validators: Validators<FormGroupState> = arrayOf(),
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
     private var parentControl: FormGroupControl? = null,
-) : AbstractFormControl<FormGroupState, Map<String, Any>>(FormGroupState(controls = controls)) {
+) : AbstractFormControl<FormGroupState, Map<String, Any?>>(FormGroupState(controls = controls)) {
     private var transformJob: Job? = null
     private var validationJob: Job? = null
 
@@ -34,7 +34,7 @@ class FormGroupControl(
         controls.values.forEach{ control -> control.bind(this) }
     }
 
-    fun getControl(key: String): AbstractFormControl<FormState<Any>, Any>? = controls[key]
+    fun getControl(key: String): AbstractFormControl<FormState<Any?>, Any?>? = controls[key]
 
     private suspend fun updateAndNotify(transformer: (state: FormGroupState) -> FormGroupState): FormGroupState {
         val newState = updateState(transformer)
@@ -168,12 +168,12 @@ class FormGroupControl(
 }
 
 class FormGroupBuilder {
-    private var controls = mutableMapOf<String, AbstractFormControl<FormState<Any>, Any>>()
+    private var controls = mutableMapOf<String, AbstractFormControl<FormState<Any?>, Any?>>()
     private val validators = mutableListOf<Validator<FormGroupState>>()
 
     fun withControl(key: String, state: Control<*>): FormGroupBuilder {
         @Suppress("UNCHECKED_CAST")
-        controls[key] = state as AbstractFormControl<FormState<Any>, Any>
+        controls[key] = state as AbstractFormControl<FormState<Any?>, Any?>
         return this
     }
 

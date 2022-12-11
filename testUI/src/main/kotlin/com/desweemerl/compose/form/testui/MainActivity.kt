@@ -18,7 +18,8 @@ import androidx.compose.ui.unit.dp
 import com.desweemerl.compose.form.controls.mergeErrors
 import com.desweemerl.compose.form.pipe
 import com.desweemerl.compose.form.ui.asTextField
-import com.desweemerl.compose.form.ui.errorsWhenTouched
+import com.desweemerl.compose.form.controls.errorsWhenTouched
+import com.desweemerl.compose.form.ui.asCheckbox
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -36,12 +37,17 @@ class MainActivity : ComponentActivity() {
                 .verticalScroll(rememberScrollState())
                 .padding(vertical = 10.dp, horizontal = 5.dp)
             ) {
-                form.getControl("password").asTextField(password = true)
+                form.getControl("password").asTextField(label = "Password", password = true)
 
                 form.getControl("confirmation_password").asTextField(
+                    label = "Password confirmation",
                     password = true,
-                    transformer = pipe(mergeErrors { formState }, errorsWhenTouched),
+                    transformer = pipe(mergeErrors { formState }, ::errorsWhenTouched),
                 )
+
+                form.getControl("age").asTextField(label= "Age")
+
+                form.getControl("keep_registered").asCheckbox(label = "Keep registered")
 
                 Row(modifier = Modifier.align(Alignment.CenterHorizontally)) {
                     Button(onClick = {

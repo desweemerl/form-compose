@@ -1,12 +1,15 @@
 package com.desweemerl.compose.form.controls
 
+import com.desweemerl.compose.form.Converters
+import com.desweemerl.compose.form.FormFieldStateIntConverters
+import com.desweemerl.compose.form.FormFieldStateStringConverters
 import com.desweemerl.compose.form.ValidationError
 import com.desweemerl.compose.form.validators.Validators
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class FormFieldControl<V>(
+open class FormFieldControl<V>(
     initialState: FormFieldState<V>,
     override val validators: Validators<FormFieldState<V>>,
     private val scope: CoroutineScope,
@@ -90,9 +93,49 @@ class FormFieldControl<V>(
     }
 }
 
+class FormFieldControlConverters<V, O>(
+    initialState: FormFieldState<V>,
+    private val converters: Converters<FormFieldState<V>, FormFieldState<O>>,
+    override val validators: Validators<FormFieldState<V>>,
+    scope: CoroutineScope,
+    parentControl: FormGroupControl? = null,
+) : FormFieldControl<V>(
+    initialState = initialState,
+    validators = validators,
+    scope = scope,
+    parentControl = parentControl
+),
+    Converters<FormFieldState<V>, FormFieldState<O>> by converters
+
 fun textControl(
     initialValue: String = "",
     validators: Validators<FormFieldState<String>> = arrayOf(),
     scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
-): FormFieldControl<String> =
+): FormFieldControlConverters<String, String> =
+    FormFieldControlConverters(
+        FormFieldState(initialValue),
+        FormFieldStateStringConverters,
+        validators,
+        scope
+    )
+
+fun intControl(
+    initialValue: Int? = null,
+    validators: Validators<FormFieldState<Int?>> = arrayOf(),
+    allowNegative: Boolean = true,
+    scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+): FormFieldControlConverters<Int?, String> =
+    FormFieldControlConverters(
+        FormFieldState(initialValue),
+        FormFieldStateIntConverters(allowNegative = allowNegative),
+        validators,
+        scope
+    )
+
+fun boolControl(
+    initialValue: Boolean = false,
+    validators: Validators<FormFieldState<Boolean>> = arrayOf(),
+    scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+): FormFieldControl<Boolean> =
     FormFieldControl(FormFieldState(initialValue), validators, scope)
+
