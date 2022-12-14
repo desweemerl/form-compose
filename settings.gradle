@@ -5,14 +5,29 @@ pluginManagement {
         mavenCentral()
     }
 }
-dependencyResolutionManagement{
-  repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-  repositories{
-    google()
-    mavenCentral()
-    jcenter()
-    maven { url "https://jitpack.io" }
-  }
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        jcenter()
+        maven { url "https://jitpack.io" }
+    }
+
+    versionCatalogs {
+        libs {
+            // Material3 bundle
+            version("material3", "1.0.1")
+            library("material3-core", "androidx.compose.material3", "material3").versionRef("material3")
+            library("material3-wsc", "androidx.compose.material3", "material3-window-size-class").versionRef("material3")
+            bundle("material3", ["material3-core", "material3-wsc"])
+
+            // Jetpack Compose tooling
+            version("compose", "1.3.2")
+            library("compose-tooling", "androidx.compose.ui", "ui-tooling").versionRef("compose")
+            library("compose-tooling-preview", "androidx.compose.ui", "ui-tooling-preview").versionRef("compose")
+        }
+    }
 }
 
 rootProject.name = "formcompose"
