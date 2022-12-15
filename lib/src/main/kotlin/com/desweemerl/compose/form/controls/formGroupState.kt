@@ -1,7 +1,11 @@
 package com.desweemerl.compose.form.controls
 
+import com.desweemerl.compose.form.JsonElementEncoder
 import com.desweemerl.compose.form.Transformer
 import com.desweemerl.compose.form.ValidationErrors
+import com.desweemerl.compose.form.valueJsonEncoder
+import kotlinx.serialization.json.*
+
 
 class FormGroupState(
     val controls: Map<String, Control<FormState<Any?>>>,
@@ -69,3 +73,8 @@ class FormGroupState(
             validationRequested = validationRequested,
         )
 }
+
+fun FormGroupState.valueToJson(encoder: JsonElementEncoder = ::valueJsonEncoder): Result<JsonElement> =
+    kotlin.runCatching {
+        encoder(value)
+    }
