@@ -76,6 +76,7 @@ fun FormTextField(
                         onStateChanged(state.copy(touched = true))
                     }
                 },
+            enabled = state.enabled,
             label = label?.let { { Text(text = it) } },
             placeholder = placeholder?.let { { Text(text = it) } },
             supportingText = {
@@ -107,6 +108,7 @@ fun FormTextField(
                         onStateChanged(state.copy(touched = true))
                     }
                 },
+            enabled = state.enabled,
             label = label?.let { { Text(text = it) } },
             placeholder = placeholder?.let { { Text(text = it) } },
             supportingText = {

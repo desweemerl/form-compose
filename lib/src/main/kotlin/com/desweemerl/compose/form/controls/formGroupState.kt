@@ -13,6 +13,7 @@ class FormGroupState(
     private val formErrors: ValidationErrors = listOf(),
     val formTouched: Boolean? = null,
     val formDirty: Boolean? = null,
+    val formEnabled: Boolean? = null,
     private var controlsDirty: Boolean = true,
     override val validating: Boolean = false,
     override val validationRequested: Boolean = false,
@@ -20,7 +21,7 @@ class FormGroupState(
     private var _errors: ValidationErrors? = null
 
     override val value: Map<String, Any?>
-        get() = formValue.plus(controls.getValues())
+        get() = if (formEnabled == false) mapOf() else formValue.plus(controls.getValues())
 
     override val errors: ValidationErrors
         get() {
@@ -38,11 +39,14 @@ class FormGroupState(
     override val dirty: Boolean
         get() = controls.dirty()
 
+    override val enabled: Boolean
+        get() = controls.enabled()
+
     override fun toString(): String = """
         FormGroupState{value=$value errors=$errors
         dirty=$dirty touched=$touched
         validating=$validating validationRequested=$validationRequested
-        formValue=$formValue formErrors=$formErrors controlsDirty=$controlsDirty}""".trimIndent()
+        formValue=$formValue formErrors=$formErrors formDisabled=$formEnabled controlsDirty=$controlsDirty}""".trimIndent()
 
     override fun setValue(transformer: Transformer<Map<String, Any?>>): FormGroupState =
         copy(formValue = transformer(value))
@@ -53,11 +57,15 @@ class FormGroupState(
     override fun markAsDirty(dirty: Boolean): FormGroupState =
         copy(formDirty = dirty)
 
+    override fun enable(enabled: Boolean): FormState<Map<String, Any?>> =
+        copy(formEnabled = enabled)
+
     fun copy(
         formValue: Map<String, Any?> = this.formValue,
         formErrors: ValidationErrors = this.formErrors,
         formTouched: Boolean? = this.formTouched,
         formDirty: Boolean? = this.formDirty,
+        formEnabled: Boolean? = this.formEnabled,
         controlsDirty: Boolean = this.controlsDirty,
         validating: Boolean = this.validating,
         validationRequested: Boolean = this.validationRequested,
@@ -68,6 +76,7 @@ class FormGroupState(
             formErrors = formErrors,
             formTouched = formTouched,
             formDirty = formDirty,
+            formEnabled = formEnabled,
             controlsDirty = controlsDirty,
             validating = validating,
             validationRequested = validationRequested,
@@ -75,6 +84,6 @@ class FormGroupState(
 }
 
 fun FormGroupState.valueToJson(encoder: JsonElementEncoder = ::valueJsonEncoder): Result<JsonElement> =
-    kotlin.runCatching {
+    runCatching {
         encoder(value)
     }

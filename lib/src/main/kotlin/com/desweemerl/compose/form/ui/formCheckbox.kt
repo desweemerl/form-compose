@@ -52,7 +52,8 @@ fun FormCheckbox(
                         } else if (focused && !focusState.isFocused && !state.touched) {
                             onStateChanged(state.copy(touched = true))
                         }
-                    }
+                    },
+                enabled = state.enabled,
             )
 
             if (label != null && align == FormCheckBoxAlign.RIGHT) {
