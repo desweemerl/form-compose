@@ -1,52 +1,34 @@
 package com.desweemerl.compose.form.controls
 
-import com.desweemerl.compose.form.Callback
-import com.desweemerl.compose.form.CallbacksImpl
 import com.desweemerl.compose.form.Transformer
 import com.desweemerl.compose.form.validators.Validators
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
 
 interface Control<S> {
     val validators: Validators<S>
     val state: S
+    val stateFlow: StateFlow<S>
+
+    fun bind(control: Control<*>)
 
     suspend fun transform(transformer: Transformer<S>): S
-
-    suspend fun registerCallback(callback: Callback<S>)
-    suspend fun unregisterCallback(callback: Callback<S>)
-
     suspend fun validate(): S
 }
 
-abstract class AbstractControl<S>(
-    initialState: S,
-    initialCallbacks: List<Callback<S>>? = null,
-) : Control<S> {
-    private val stateMutex = Mutex()
-    internal var internalState = initialState
+abstract class AbstractControl<S>(initialState: S) : Control<S> {
+    private val _state = MutableStateFlow(initialState)
 
     override val state: S
-        get() = internalState
+        get() = _state.value
 
-    private val callbacks = CallbacksImpl(initialCallbacks)
+    override val stateFlow: StateFlow<S>
+        get() = _state.asStateFlow()
 
-    override suspend fun registerCallback(callback: Callback<S>) =
-        callbacks.register(callback)
-
-    override suspend fun unregisterCallback(callback: Callback<S>) =
-        callbacks.unregister(callback)
-
-    internal suspend inline fun updateState(transformer: Transformer<S>): S =
-        stateMutex.withLock {
-            internalState = transformer(internalState)
-            broadcastState()
-            internalState
-        }
-
-    internal suspend inline fun broadcastState() {
-        callbacks.broadcast(state)
-    }
+    internal open fun updateState(transformer: Transformer<S>): S =
+        _state.getAndUpdate(transformer)
 }
 
 abstract class AbstractFormControl<S, V>(initialState: S) :

@@ -3,22 +3,14 @@ package com.desweemerl.compose.form
 import com.desweemerl.compose.form.controls.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import org.junit.Before
 
 open class ControlTest<S>(protected open val control: Control<S>) {
     @ExperimentalCoroutinesApi
     private val scope = CoroutineScope(UnconfinedTestDispatcher())
 
-    protected var state: S? = null
-
-    @Before
-    fun prepareTest() {
-        runBlocking {
-            control.registerCallback { state = it }
-        }
-    }
+    protected val state: S
+    get() = control.state
 }
 
 open class FormFieldControlTest<V>(override val control: FormFieldControl<V>) :
