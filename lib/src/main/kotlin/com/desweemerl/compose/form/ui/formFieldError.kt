@@ -11,18 +11,15 @@ import androidx.compose.ui.unit.dp
 import com.desweemerl.compose.form.FormState
 
 @Composable
-fun <V> FormFieldError(state: FormState<V>): (@Composable () -> Unit)? =
-    if (state.touched && state.errors.isNotEmpty()) {
-        {
-            val firstError = state.errors.first()
+fun <V> FormFieldError(state: FormState<V>) {
+    if (state.errors.isNotEmpty()) {
+        val firstError = state.errors.first()
 
-            Text(
-                text = firstError.message,
-                style = MaterialTheme.typography.caption,
-                color = Color.Red,
-                modifier = Modifier.padding(horizontal = 2.dp)
-            )
-        }
-    } else {
-        null
+        Text(
+            text = firstError.message,
+            style = MaterialTheme.typography.caption,
+            color = Color.Red,
+            modifier = Modifier.padding(horizontal = 2.dp)
+        )
     }
+}
