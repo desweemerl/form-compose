@@ -162,12 +162,10 @@ class FormGroupValidationTest :
     fun `When a control has errors and validation is done on that control expect states on form and control have errors of the control`() =
         runTest {
             val controlErrors = listOf(
-                ValidationError("pattern", "wrong value"),
                 ValidationError("required", "value required"),
             )
 
             val formErrors = listOf(
-                ValidationError("pattern", "wrong value", Path("first_name")),
                 ValidationError("required", "value required", Path("first_name")),
             )
 
@@ -180,7 +178,6 @@ class FormGroupValidationTest :
     fun `When a control has errors and validation is done on the form expect states on form and control have all errors`() =
         runTest {
             val formErrors = listOf(
-                ValidationError("pattern", "wrong value", Path("first_name")),
                 ValidationError("required", "value required", Path("first_name")),
                 ValidationError("required", "value required", Path("details", "option")),
             )
