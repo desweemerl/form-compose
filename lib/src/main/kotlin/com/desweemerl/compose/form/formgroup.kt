@@ -24,8 +24,13 @@ class FormGroupControl(
     init {
         syncJob = scope.launch {
             controls.entries.forEach { entry ->
-                entry.value.registerCallback { state ->
-                    mergeControlState(entry.key, state)
+                scope.launch {
+                    entry.value.registerCallback { controlState ->
+                        mergeControlState(entry.key, controlState)
+                        if (!state.validating) {
+                            liveValidate()
+                        }
+                    }
                 }
             }
         }
@@ -69,47 +74,68 @@ class FormGroupControl(
         return state
     }
 
-    override suspend fun validate(): FormGroupState {
+    override suspend fun validate(): FormGroupState = liveValidate(true)
+
+    private suspend fun liveValidate(validationRequested: Boolean = false): FormGroupState {
         validationJob?.cancel()
         validationJob = scope.launch {
             val initialState = updateState { state ->
                 state
                     .markAsValidating()
-                    .requestValidation()
+                    .requestValidation(validationRequested)
             }
 
             try {
                 val mutex = Mutex()
-                var errors = listOf<ValidationError>()
+                val errors = mutableListOf<ValidationError>()
 
-                listOf(
+                val jobs = mutableListOf(
                     scope.launch {
                         validators.map { validator ->
                             launch {
                                 validator.validate(initialState)?.let { error ->
                                     mutex.withLock {
-                                        errors = errors + error
+                                        errors.add(error)
                                     }
                                 }
                             }
                         }.joinAll()
-                    },
+                    }
+                )
 
-                    scope.launch {
-                        controls.entries.map { entry ->
-                            launch {
-                                val controlErrors = entry.value.validate().errors
-                                mutex.withLock {
-                                    errors = errors.replace(entry.key, controlErrors)
+                if (validationRequested) {
+                    jobs.add(
+                        scope.launch {
+                            controls.entries.map { entry ->
+                                launch {
+                                    val controlErrors = entry.value.validate().errors
+                                    mutex.withLock {
+                                        val newControlErrors = controlErrors.map { error ->
+                                            ValidationError(
+                                                type = error.type,
+                                                message = error.message,
+                                                path = Path(entry.key).plus(error.path),
+                                            )
+                                        }
+                                        errors.addAll(newControlErrors)
+                                    }
                                 }
-                            }
-                        }.joinAll()
+                            }.joinAll()
+                        }
+                    )
+                }
 
-                    }).joinAll()
+                jobs.joinAll()
 
                 updateState { state ->
+                    val newErrors = if (validationRequested) {
+                        errors
+                    } else {
+                        state.errors.filter { error -> !error.path.isEmpty() } + errors
+                    }
+
                     state
-                        .withErrors(errors)
+                        .withErrors(newErrors)
                         .markAsValidating(false)
                         .requestValidation(false)
                 }
@@ -117,7 +143,7 @@ class FormGroupControl(
                 updateState { state ->
                     state
                         .markAsValidating(false)
-                        .requestValidation()
+                        .requestValidation(false)
                 }
                 throw ex
             }
@@ -143,5 +169,8 @@ class FormGroupBuilder {
         return this
     }
 
-    fun build(): FormGroupControl = FormGroupControl(controls = controls)
+    fun build(): FormGroupControl = FormGroupControl(
+        controls = controls,
+        validators = validators.toTypedArray(),
+    )
 }
