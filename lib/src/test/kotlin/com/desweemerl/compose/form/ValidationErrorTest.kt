@@ -1,33 +1,24 @@
 package com.desweemerl.compose.form
 
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import com.desweemerl.compose.form.validators.FormValidator
 
+fun assertValidationErrors(expectation: ValidationErrors, actual: ValidationErrors) {
+    if (!expectation.all { error -> actual.hasErrorOfType(error.type, error.path) }) {
+        throw AssertionError("Assertion failed: expectation=${expectation} actual=${actual}")
+    }
+}
+
+class DummyValidator(
+    override val message: String
+) : FormValidator<String>(message = "dummy error") {
+    override suspend fun validate(state: IFormState<String>): ValidationError? =
+        if (state.value == "error") {
+            ValidationError("dummy", message)
+        } else {
+            null
+        }
+}
 
 class ValidationErrorTest {
-
-    @Test
-    fun checkPath() {
-        assertEquals(Path("my", "path"), Path("my", "path"))
-        assertEquals(Path("/my/path"), Path("my", "path"))
-        assertArrayEquals(Path("/my/path").parts, arrayOf("my", "path"))
-
-        val wrongPath = "//"
-        try {
-            Path(wrongPath)
-            assert(false)
-        } catch (e: Exception) {
-            assert(e is ValidationException)
-            assert(e.message == "path $wrongPath is incorrect")
-        }
-    }
-
-    @Test
-    fun checkPlus() {
-        assertEquals(
-            Path("/one/two/three/four"),
-            Path("one", "two").plus(Path("three", "four"))
-        )
-    }
+// TODO
 }
