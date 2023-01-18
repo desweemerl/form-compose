@@ -6,7 +6,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-typealias FormGroupState = IFormState<Map<String, Any>>
+typealias FormGroupState = FormState<Map<String, Any>>
 
 fun Map<String, IFormControl<Any>>.getValues(): Map<String, Any> =
     entries.associate { entry -> Pair(entry.key, entry.value.state.value) }
@@ -35,7 +35,7 @@ class FormGroupControl(
 
     private suspend fun mergeControlState(
         key: String,
-        controlState: IFormState<Any>
+        controlState: FormState<Any>
     ): FormGroupState = updateState { state ->
         val newValue = state.value.plus(Pair(key, controlState.value))
         val newErrors = state.errors.replace(key, controlState.errors)
@@ -74,7 +74,6 @@ class FormGroupControl(
         validationJob = scope.launch {
             val initialState = updateState { state ->
                 state
-                    .clearErrors()
                     .markAsValidating()
                     .requestValidation()
             }
