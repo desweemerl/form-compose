@@ -38,7 +38,7 @@ class FormGroupControl(
         controlState: IFormState<Any>
     ): FormGroupState = updateState { state ->
         val newValue = state.value.plus(Pair(key, controlState.value))
-        val newErrors = state.errors.merge(key, controlState.errors)
+        val newErrors = state.errors.replace(key, controlState.errors)
 
         state.withValue(newValue).withErrors(newErrors)
     }
@@ -101,7 +101,7 @@ class FormGroupControl(
                             launch {
                                 val controlErrors = entry.value.validate().errors
                                 mutex.withLock {
-                                    errors = errors.merge(entry.key, controlErrors)
+                                    errors = errors.replace(entry.key, controlErrors)
                                 }
                             }
                         }.joinAll()
