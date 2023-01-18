@@ -1,6 +1,6 @@
 package com.desweemerl.compose.form.controls
 
-import com.desweemerl.compose.form.*
+import com.desweemerl.compose.form.ValidationError
 import com.desweemerl.compose.form.validators.Validators
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -10,17 +10,19 @@ class FormFieldControl<V>(
     initialState: FormFieldState<V>,
     override val validators: Validators<FormFieldState<V>>,
     private val scope: CoroutineScope,
+    private var parentControl: FormGroupControl? = null,
 ) : AbstractFormControl<FormFieldState<V>, V>(initialState) {
-    private var transformJob: Job? = null
     private var validationJob: Job? = null
 
+    private suspend fun updateAndNotify(transformer: (state: FormFieldState<V>) -> FormFieldState<V>): FormFieldState<V> {
+        val newState = updateState(transformer)
+        parentControl?.notifyStateChange()
+        return newState
+    }
+
     override suspend fun transform(transformer: (state: FormFieldState<V>) -> FormFieldState<V>): FormFieldState<V> {
-        transformJob?.cancel()
-        transformJob = scope.launch {
-            updateState(transformer = transformer)
-            liveValidate()
-        }
-        transformJob?.join()
+        updateAndNotify(transformer = transformer)
+        liveValidate()
 
         return state
     }
@@ -28,10 +30,22 @@ class FormFieldControl<V>(
     override suspend fun validate(): FormFieldState<V> =
         liveValidate(true)
 
+    override fun bind(control: Control<*>) {
+        if (parentControl == null) {
+            if (control is FormGroupControl) {
+                parentControl = control
+            } else {
+                throw Exception("control must be a FormGroupControl")
+            }
+        } else {
+            throw Exception("control is already bound")
+        }
+    }
+
     private suspend fun liveValidate(validationRequested: Boolean = false): FormFieldState<V> {
-        validationJob?.cancel()
+        validationJob?.cancelAndJoin()
         validationJob = scope.launch {
-            val initialState = updateState { state ->
+            val initialState = updateAndNotify { state ->
                 state.copy(
                     validating = true,
                     validationRequested = validationRequested
@@ -53,7 +67,7 @@ class FormFieldControl<V>(
                     }
                 }.joinAll()
 
-                updateState { state ->
+                updateAndNotify { state ->
                     state.copy(
                         validating = false,
                         validationRequested = false,
@@ -61,7 +75,7 @@ class FormFieldControl<V>(
                     )
                 }
             } catch (ex: Exception) {
-                updateState { state ->
+                updateAndNotify { state ->
                     state.copy(
                         validating = false,
                         validationRequested = false,

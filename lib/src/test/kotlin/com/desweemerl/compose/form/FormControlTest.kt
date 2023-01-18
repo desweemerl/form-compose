@@ -16,23 +16,18 @@ class FormFieldControlSetValueTest :
 
     @Test
     fun `When control is initialized expect state has the initial value`() {
-        assertEquals("initial", control.state.value)
-    }
-
-    @Test
-    fun `When control is initialized expect callback value is null`() {
-        assertEquals(null, state?.value)
+        assertEquals("initial", state.value)
     }
 
     @Test
     @ExperimentalCoroutinesApi
-    fun `When control is updated expect state and callback have the new value`() =
+    fun `When control is updated expect state has the new value`() =
         runTest {
             assertEquals(
                 "initial_next",
                 control.setValue { value -> "${value}_next" }.value
             )
-            assertEquals("initial_next", control.state.value)
+            assertEquals("initial_next", state.value)
         }
 
     @Test
@@ -43,8 +38,7 @@ class FormFieldControlSetValueTest :
                 requiredError,
                 control.setValue { "" }.errors
             )
-            assertMatchErrors(requiredError, control.state.errors)
-            assertMatchErrors(requiredError, state?.errors)
+            assertMatchErrors(requiredError, state.errors)
         }
 }
 
@@ -57,7 +51,7 @@ class FormFieldControlValidationTest :
     @ExperimentalCoroutinesApi
     fun `When control is initialized with a wrong value expect initial state contains no error`() =
         runTest {
-            assertMatchErrors(listOf(), control.state.errors)
+            assertMatchErrors(listOf(), state.errors)
         }
 
     @Test

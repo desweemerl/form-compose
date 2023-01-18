@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -16,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.desweemerl.compose.form.controls.mergeErrors
 import com.desweemerl.compose.form.pipe
-import com.desweemerl.compose.form.ui.asMutableState
 import com.desweemerl.compose.form.ui.asTextField
 import com.desweemerl.compose.form.ui.errorsWhenTouched
 import kotlinx.coroutines.launch
@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
             val scope = rememberCoroutineScope()
             val form = viewModel.form
 
-            val formState by form.asMutableState()
+            val formState by form.stateFlow.collectAsState()
 
             Column(modifier = Modifier
                 .verticalScroll(rememberScrollState())
