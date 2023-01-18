@@ -1,5 +1,6 @@
 package com.desweemerl.compose.form
 
+import com.desweemerl.compose.form.controls.FormFieldState
 import com.desweemerl.compose.form.validators.ValidatorRequired
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -11,7 +12,7 @@ class ValidationErrorTest {
     @Test
     @ExperimentalCoroutinesApi
     fun `When 2 validation errors have same path and same type expect to be equals`() = runTest {
-        val dummyState = FormState(value = "")
+        val dummyState = FormFieldState(value = "")
         val expectation = ValidatorRequired().validate(dummyState)
         val actual = ValidatorRequired("message update").validate(dummyState)
         assertEquals(expectation, actual)

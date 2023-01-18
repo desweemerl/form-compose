@@ -1,23 +1,23 @@
-package com.desweemerl.compose.form
+package com.desweemerl.compose.form.controls
 
-import com.desweemerl.compose.form.validators.FormValidators
+import com.desweemerl.compose.form.*
+import com.desweemerl.compose.form.validators.Validators
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-internal class FormControl<V>(
-    initialState: FormState<V>,
-    override val validators: FormValidators<V>,
+class FormFieldControl<V>(
+    initialState: FormFieldState<V>,
+    override val validators: Validators<FormFieldState<V>>,
     private val scope: CoroutineScope,
-) : AbstractFormControl<V>(initialState) {
+) : AbstractFormControl<FormFieldState<V>, V>(initialState) {
     private var transformJob: Job? = null
     private var validationJob: Job? = null
-    private var updateJob: Job? = null
 
-    override suspend fun transformValue(transform: (value: V) -> V): IFormState<V> {
+    override suspend fun transform(transformer: (state: FormFieldState<V>) -> FormFieldState<V>): FormFieldState<V> {
         transformJob?.cancel()
         transformJob = scope.launch {
-            updateState { state -> state.withValue(transform(state.value)) }
+            updateState(transformer = transformer)
             liveValidate()
         }
         transformJob?.join()
@@ -25,16 +25,17 @@ internal class FormControl<V>(
         return state
     }
 
-    override suspend fun validate(): IFormState<V> =
+    override suspend fun validate(): FormFieldState<V> =
         liveValidate(true)
 
-    private suspend fun liveValidate(validationRequested: Boolean = false): IFormState<V> {
+    private suspend fun liveValidate(validationRequested: Boolean = false): FormFieldState<V> {
         validationJob?.cancel()
         validationJob = scope.launch {
             val initialState = updateState { state ->
-                state
-                    .markAsValidating()
-                    .requestValidation(validationRequested)
+                state.copy(
+                    validating = true,
+                    validationRequested = validationRequested
+                )
             }
 
             val errors = mutableListOf<ValidationError>()
@@ -53,16 +54,18 @@ internal class FormControl<V>(
                 }.joinAll()
 
                 updateState { state ->
-                    state
-                        .withErrors(errors)
-                        .markAsValidating(false)
-                        .requestValidation(false)
+                    state.copy(
+                        validating = false,
+                        validationRequested = false,
+                        errors = errors
+                    )
                 }
             } catch (ex: Exception) {
                 updateState { state ->
-                    state
-                        .markAsValidating(false)
-                        .requestValidation(false)
+                    state.copy(
+                        validating = false,
+                        validationRequested = false,
+                    )
                 }
                 throw ex
             }
@@ -71,21 +74,11 @@ internal class FormControl<V>(
 
         return state
     }
-
-    fun update(newState: IFormState<V>) {
-        updateJob?.cancel()
-        transformJob?.cancel()
-
-        updateJob = scope.launch {
-            updateState { newState }
-            liveValidate()
-        }
-    }
 }
 
 fun textControl(
     initialValue: String = "",
-    validators: FormValidators<String> = arrayOf(),
+    validators: Validators<FormFieldState<String>> = arrayOf(),
     scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
-) : IFormControl<String> =
-    FormControl(FormState(initialValue), validators, scope)
+): FormFieldControl<String> =
+    FormFieldControl(FormFieldState(initialValue), validators, scope)

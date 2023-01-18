@@ -1,14 +1,17 @@
 package com.desweemerl.compose.form
 
-import kotlinx.coroutines.*
+import com.desweemerl.compose.form.controls.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Before
 
-open class FormControlTest<V>(protected open val control: IFormControl<V>) {
+open class ControlTest<S>(protected open val control: Control<S>) {
     @ExperimentalCoroutinesApi
     private val scope = CoroutineScope(UnconfinedTestDispatcher())
 
-    protected var state: IFormState<V>? = null
+    protected var state: S? = null
 
     @Before
     fun prepareTest() {
@@ -18,6 +21,17 @@ open class FormControlTest<V>(protected open val control: IFormControl<V>) {
     }
 }
 
-open class FormGroupTest(override val control: IFormGroupControl)
-    : FormControlTest<Map<String, Any>>(control) {
+open class FormFieldControlTest<V>(override val control: FormFieldControl<V>) :
+    ControlTest<FormFieldState<V>>(control)
+
+open class FormGroupControlTest(override val control: FormGroupControl) :
+    ControlTest<FormGroupState>(control) {
+
+    @Suppress("UNCHECKED_CAST")
+    fun getTextField(key: String): FormFieldControl<String> =
+        control.getControl(key) as FormFieldControl<String>
+
+    @Suppress("UNCHECKED_CAST")
+    fun getFormGroupControl(key: String): FormGroupControl =
+        control.getControl(key) as FormGroupControl
 }

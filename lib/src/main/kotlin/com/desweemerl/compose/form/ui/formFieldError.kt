@@ -8,10 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.desweemerl.compose.form.IFormState
+import com.desweemerl.compose.form.controls.FormState
 
 @Composable
-fun <V> FormFieldError(state: IFormState<V>) {
+fun <V> FormFieldError(state: FormState<V>) {
     if (state.errors.isNotEmpty()) {
         val firstError = state.errors.first()
 
