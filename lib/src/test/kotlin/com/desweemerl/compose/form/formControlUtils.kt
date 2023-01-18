@@ -12,7 +12,7 @@ open class FormControlTest<V>(protected val control: IFormControl<V>) {
     @ExperimentalCoroutinesApi
     private val scope = CoroutineScope(UnconfinedTestDispatcher())
 
-    protected var state: IFormState<V>? = null
+    protected var state: FormState<V>? = null
     private lateinit var job: Job
 
     @OptIn(ExperimentalCoroutinesApi::class)

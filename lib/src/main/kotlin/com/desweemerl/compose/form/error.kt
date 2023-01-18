@@ -44,6 +44,8 @@ fun ValidationErrors.hasErrorOfType(type: String, path: Path): Boolean = any { e
     error.type == type && error.path.includePath(path)
 }
 
+fun ValidationErrors.first(): ValidationError? = null
+
 fun ValidationErrors.matches(errors: ValidationErrors?): Boolean =
     errors != null
             && size == errors.size
