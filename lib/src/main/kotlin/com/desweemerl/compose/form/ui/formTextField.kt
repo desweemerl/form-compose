@@ -15,14 +15,14 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun FormTextField(
-    flowState: FormControl<String>,
+    formControl: FormControl<String>,
     testTag: String = "",
 ) {
-    val state = flowState.state.collectAsState()
+    val state = formControl.stateFlow.collectAsState()
 
     FormTextField(
         state = state.value,
-        onStateChanged = flowState::update,
+        onStateChanged = formControl::update,
         testTag = testTag,
     )
 }
@@ -51,10 +51,10 @@ fun FormTextField(
         modifier = Modifier
             .testTag(testTag)
             .onFocusChanged {
-            coroutineScope.launch {
-                onStateChanged(state.markAsTouched())
+                coroutineScope.launch {
+                    onStateChanged(state.markAsTouched())
+                }
             }
-        }
     )
 }
 

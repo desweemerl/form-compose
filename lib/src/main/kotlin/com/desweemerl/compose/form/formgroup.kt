@@ -1,100 +1,131 @@
 package com.desweemerl.compose.form
 
 import com.desweemerl.compose.form.validators.FormValidator
-import com.desweemerl.compose.form.validators.FormValidatorOptions
 import com.desweemerl.compose.form.validators.FormValidators
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 typealias FormGroupState = IFormState<Map<String, Any>>
 
-private sealed class FormGroupChange {
-    class FieldChange(val field: String, val controlState: IFormState<Any>) : FormGroupChange()
-    class FormChange(val state: FormGroupState) : FormGroupChange()
-}
+fun Map<String, IFormControl<Any>>.getValues(): Map<String, Any> =
+    entries.associate { entry -> Pair(entry.key, entry.value.state.value) }
+
 
 class FormGroupControl(
     val controls: Map<String, IFormControl<Any>> = mapOf(),
     override val validators: FormValidators<Map<String, Any>> = arrayOf(),
-) : IFormControl<Map<String, Any>> {
-    private val controlFlows
-        get() = controls.entries.map { entry ->
-            entry.value.state.map { state -> FormGroupChange.FieldChange(entry.key, state) }
-        }.toTypedArray()
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+) : AbstractFormControl<Map<String, Any>>(FormState(value = controls.getValues())) {
+    private var syncJob: Job
+    private var transformJob: Job? = null
+    private var validationJob: Job? = null
 
-    private val controlStates
-        get() = merge(*controlFlows)
-
-    private val formStateChange =
-        MutableSharedFlow<FormGroupChange.FormChange>()
+    init {
+        syncJob = scope.launch {
+            controls.entries.forEach { entry ->
+                entry.value.registerCallback { state ->
+                    mergeControlState(entry.key, state)
+                }
+            }
+        }
+    }
 
     fun getControl(key: String): IFormControl<Any>? = controls[key]
 
-    private val mutex = Mutex()
-    private var formState: FormGroupState = FormState(value = mapOf())
+    private suspend fun mergeControlState(
+        key: String,
+        controlState: IFormState<Any>
+    ): FormGroupState = updateState { state ->
+        val newValue = state.value.plus(Pair(key, controlState.value))
+        val newErrors = state.errors.merge(key, controlState.errors)
 
-    override val state: Flow<FormGroupState> =
-        merge(formStateChange, controlStates).map { change ->
-            mutex.withLock {
-                formState = when (change) {
-                    is FormGroupChange.FieldChange -> {
-                        val newValue =
-                            formState.value.plus(Pair(change.field, change.controlState.value))
-                        val errors =
-                            formState.errors.merge(change.field, change.controlState.errors)
+        state.withValue(newValue).withErrors(newErrors)
+    }
 
-                        formState.withValue(newValue).withErrors(errors)
-                    }
-                    is FormGroupChange.FormChange -> {
-                        val newValue = formState.value.plus(change.state.value)
-                        formState.withValue(newValue).withErrors(change.state.errors)
-                    }
-                }
-            }
-            formState
-        }
+    override suspend fun transformValue(transform: (value: Map<String, Any>) -> Map<String, Any>): FormGroupState {
+        transformJob?.cancel()
+        transformJob = scope.launch {
+            val newValue = transform(state.value)
+            val entries = newValue.entries
+                .filter { entry -> controls.containsKey(entry.key) }
 
-    override suspend fun transformValue(transform: (value: Map<String, Any>) -> Map<String, Any>) {
-        mutex.withLock {
-            val newValue = transform(formState.value)
-            newValue.entries
-                .forEach { entry ->
+            entries.map { entry ->
+                launch {
                     controls[entry.key]?.transformValue { entry.value }
                 }
+            }.joinAll()
 
-            val patchValue = newValue.filterKeys { key -> !controls.containsKey(key) }
-            val newState = formState
-                .withValue(patchValue)
-                .clearErrors()
+            updateState { state ->
+                val patchValue = state.value.plus(
+                    newValue.filterKeys { key -> !controls.containsKey(key) }
+                )
 
-            formStateChange.emit(FormGroupChange.FormChange(newState))
+                state.withValue(patchValue)
+            }
         }
+        transformJob?.join()
+
+        return state
     }
 
-    override suspend fun validate(): Errors {
-        mutex.withLock {
-            val initialState = formState.markAsValidating().clearErrors()
-            formStateChange.emit(FormGroupChange.FormChange(initialState))
+    override suspend fun validate(): FormGroupState {
+        validationJob?.cancel()
+        validationJob = scope.launch {
+            val initialState = updateState { state ->
+                state
+                    .clearErrors()
+                    .markAsValidating()
+                    .requestValidation()
+            }
+
+            try {
+                val mutex = Mutex()
+                var errors = listOf<ValidationError>()
+
+                listOf(
+                    scope.launch {
+                        validators.map { validator ->
+                            launch {
+                                validator.validate(initialState)?.let { error ->
+                                    mutex.withLock {
+                                        errors = errors + error
+                                    }
+                                }
+                            }
+                        }.joinAll()
+                    },
+
+                    scope.launch {
+                        controls.entries.map { entry ->
+                            launch {
+                                val controlErrors = entry.value.validate().errors
+                                mutex.withLock {
+                                    errors = errors.merge(entry.key, controlErrors)
+                                }
+                            }
+                        }.joinAll()
+
+                    }).joinAll()
+
+                updateState { state ->
+                    state
+                        .withErrors(errors)
+                        .markAsValidating(false)
+                        .requestValidation(false)
+                }
+            } catch (ex: Exception) {
+                updateState { state ->
+                    state
+                        .markAsValidating(false)
+                        .requestValidation()
+                }
+                throw ex
+            }
         }
+        validationJob?.join()
 
-        controls.values.forEach { control -> control.validate() }
-
-        return mutex.withLock {
-            val newState =
-                validators.validate(formState, FormValidatorOptions()).markAsValidating(false)
-            formStateChange.emit(FormGroupChange.FormChange(newState))
-
-            newState.errors
-        }
-    }
-
-    override suspend fun clearErrors() {
-        controls.values.forEach{ control -> control.clearErrors() }
-        mutex.withLock {
-            val newState = formState.clearErrors()
-            formStateChange.emit(FormGroupChange.FormChange(newState))
-       }
+        return state
     }
 }
 
@@ -103,6 +134,7 @@ class FormGroupBuilder {
     private val validators = mutableListOf<FormValidator<Map<String, Any>>>()
 
     fun <V> withControl(key: String, state: IFormControl<V>): FormGroupBuilder {
+        @Suppress("UNCHECKED_CAST")
         controls[key] = state as IFormControl<Any>
         return this
     }

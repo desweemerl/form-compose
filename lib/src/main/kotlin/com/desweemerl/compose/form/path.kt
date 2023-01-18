@@ -1,25 +1,15 @@
 package com.desweemerl.compose.form
 
-interface IPath {
+
+class Path(vararg varParts: String) {
+    private var _parts: Array<String>
     val parts: Array<String>
-
-    fun includePath(path: IPath): Boolean =
-        path.parts.withIndex().all { iValue ->
-            iValue.value == parts[iValue.index]
-        }
-
-    fun plus(path: IPath): IPath
-
-    fun isEmpty(): Boolean = parts.isEmpty()
-}
-
-class Path(vararg varParts: String) : IPath {
-    override lateinit var parts: Array<String>
+        get() = _parts
 
     private val pathRE = "^/?((?:[^/]+/)*(?:[^/]+))$".toRegex()
 
     init {
-        parts = if (varParts.size == 1) {
+        _parts = if (varParts.size == 1) {
             val value = varParts[0]
             val groups = pathRE.find(value)
                 ?: throw ValidationException("path $value is incorrect")
@@ -41,18 +31,24 @@ class Path(vararg varParts: String) : IPath {
     }
 
     override fun toString(): String =
-        "/${parts.joinToString("/")}"
+        "/${_parts.joinToString("/")}"
 
-    override fun plus(path: IPath): IPath =
-        Path(*parts.plus(path.parts))
+    fun plus(path: Path): Path =
+        Path(*_parts.plus(path._parts))
 
-    override fun equals(other: Any?): Boolean {
-        if (other is Path) {
-            return other.toString() == toString()
+    fun isEmpty(): Boolean = _parts.isEmpty()
+
+    fun includePath(path: Path): Boolean =
+        path.parts.withIndex().all { iValue ->
+            iValue.value == parts[iValue.index]
         }
 
-        return false
-    }
+    override fun equals(other: Any?): Boolean =
+        if (other is Path) {
+            other.toString() == toString()
+        } else {
+            false
+        }
 
     override fun hashCode(): Int = parts.hashCode()
 }

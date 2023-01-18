@@ -3,35 +3,36 @@ package com.desweemerl.compose.form
 
 class ValidationException(override val message: String) : Exception(message)
 
-interface IValidationError {
-    val type: String
-    val message: String
-    val path: IPath
-}
-
-typealias Errors = List<IValidationError>
+typealias ValidationErrors = List<ValidationError>
 
 class ValidationError(
-    override val type: String,
-    override val message: String,
-    override val path: IPath = Path(),
-) : IValidationError {
+    val type: String,
+    val message: String,
+    val path: Path = Path(),
+) {
     override fun toString(): String =
-        "Validation error: type=${type} message=${message} path=${path}"
+        "Validation error(type='$type' message='$message' path='$path')"
 
-    override fun equals(other: Any?): Boolean {
+    override fun equals(other: Any?): Boolean =
         if (other is ValidationError) {
-            return other.type == type && other.message == message && other.path == path
+            type == other.type && path == other.path
+        } else {
+            false
         }
-        return false
-    }
 
     override fun hashCode(): Int = toString().hashCode()
 }
 
-fun Errors.merge(path: String, errors: Errors): Errors = merge(Path(path), errors)
-fun Errors.merge(path: IPath, errors: Errors): Errors =
-    filter { error -> !error.path.includePath(path) }
+fun ValidationErrors.merge(errors: ValidationErrors): ValidationErrors = merge(Path(), errors)
+
+fun ValidationErrors.merge(path: String, errors: ValidationErrors): ValidationErrors =
+    merge(Path(path), errors)
+
+fun ValidationErrors.merge(path: Path, errors: ValidationErrors): ValidationErrors =
+    filter { error ->
+        (path.isEmpty() && !error.path.isEmpty())
+                || (!path.isEmpty() && !error.path.includePath(path))
+    }
         .plus(errors.map { error ->
             ValidationError(
                 type = error.type,
@@ -40,4 +41,12 @@ fun Errors.merge(path: IPath, errors: Errors): Errors =
             )
         })
 
+fun ValidationErrors.hasErrorOfType(type: String): Boolean = any { error -> error.type == type }
+fun ValidationErrors.hasErrorOfType(type: String, path: Path): Boolean = any { error ->
+    error.type == type && error.path.includePath(path)
+}
 
+fun ValidationErrors.matches(errors: ValidationErrors?): Boolean =
+    errors != null
+            && size == errors.size
+            && all { e -> errors.any { error -> e.equals(error) } }
