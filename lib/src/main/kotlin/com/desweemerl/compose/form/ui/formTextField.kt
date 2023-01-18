@@ -17,34 +17,6 @@ import com.desweemerl.compose.form.*
 
 @Composable
 fun FormTextField(
-    control: FormControl<String>,
-    label: String? = null,
-    singleLine: Boolean = true,
-    password: Boolean = false,
-    transformer: Transformer<String> = Transformer.default(),
-    error: @Composable (FormState<String>) -> Unit = { FormFieldError(it) },
-    onEnter: (() -> Unit)? = null,
-    testTag: String = "",
-) {
-    val state = control.asMutableState()
-
-    FormTextField(
-        state = transformer.transform(state.value),
-        onStateChanged = { newState ->
-            state.value = newState
-            control.update(newState)
-        },
-        label = label,
-        error = error,
-        singleLine = singleLine,
-        password = password,
-        onEnter = onEnter,
-        testTag = testTag,
-    )
-}
-
-@Composable
-fun FormTextField(
     state: FormState<String>,
     onStateChanged: (FormState<String>) -> Unit = {},
     label: String? = null,
@@ -102,7 +74,7 @@ fun FormTextField(
 
 @Suppress("UNCHECKED_CAST")
 @Composable
-fun IFormControl<Any>?.asTextField(
+fun IFormControl<*>?.asTextField(
     label: String? = null,
     singleLine: Boolean = true,
     password: Boolean = false,
@@ -111,24 +83,27 @@ fun IFormControl<Any>?.asTextField(
     onEnter: (() -> Unit)? = null,
     testTag: String = "",
 ) = (this as? FormControl<String>)?.let {
+    var state by asMutableState()
+
     FormTextField(
-        this,
+        state = transformer.transform(state),
+        onStateChanged = { newState ->
+            state = newState
+            update(newState)
+        },
         label = label,
+        error = error,
         singleLine = singleLine,
         password = password,
-        transformer = transformer,
-        error = error,
         onEnter = onEnter,
-        testTag = testTag
+        testTag = testTag,
     )
 }
 
 @Preview
 @Composable
 fun PreviewFormTextField() {
-    val control = textControl("My value")
-
-    FormTextField(control)
+    textControl("My value").asTextField()
 }
 
 @Preview
