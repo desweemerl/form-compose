@@ -16,7 +16,7 @@ class FormTextFieldTest {
     fun valueTest() {
         val control = textControl("hello")
         composeTestRule.setContent {
-            FormTextField(formControl = control, testTag = "field1")
+            FormTextField(control = control, testTag = "field1")
         }
         val node = composeTestRule.onNodeWithTag("field1")
         node.assertTextContains("hello")
