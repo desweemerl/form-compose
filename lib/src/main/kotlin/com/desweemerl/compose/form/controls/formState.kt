@@ -10,12 +10,14 @@ interface FormState<V> {
     val errors: ValidationErrors
     val dirty: Boolean
     val touched: Boolean
+    val enabled: Boolean
     val validating: Boolean
     val validationRequested: Boolean
 
     fun setValue(transformer: Transformer<V>): FormState<V>
     fun markAsTouched(touched: Boolean = true): FormState<V>
     fun markAsDirty(dirty: Boolean = true): FormState<V>
+    fun enable(enabled: Boolean = true): FormState<V>
 
     fun matches(other: FormState<V>?): Boolean =
         if (other == null) {
@@ -25,6 +27,7 @@ interface FormState<V> {
                     && errors.matches(other.errors)
                     && dirty == other.dirty
                     && touched == other.touched
+                    && enabled == other.enabled
                     && validating == other.validating
                     && validationRequested == other.validationRequested
         }

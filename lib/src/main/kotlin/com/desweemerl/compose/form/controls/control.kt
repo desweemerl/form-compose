@@ -45,4 +45,8 @@ abstract class AbstractFormControl<S, V>(initialState: S) :
     @Suppress("UNCHECKED_CAST")
     suspend fun markAsDirty(dirty: Boolean = true): FormState<V> =
         transform { state -> state.markAsDirty(dirty) as S }
+
+    @Suppress("UNCHECKED_CAST")
+    suspend fun enable(enabled: Boolean = true): FormState<V> =
+        transform { state -> state.enable(enabled) as S }
 }

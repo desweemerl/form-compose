@@ -9,6 +9,7 @@ class FormFieldState<V>(
     override val errors: ValidationErrors = listOf(),
     override val dirty: Boolean = false,
     override val touched: Boolean = false,
+    override val enabled: Boolean = true,
     override val validating: Boolean = false,
     override val validationRequested: Boolean = false,
 ) : FormState<V> {
@@ -26,6 +27,9 @@ class FormFieldState<V>(
     override fun markAsDirty(dirty: Boolean): FormState<V> =
         copy(dirty = dirty)
 
+    override fun enable(enabled: Boolean): FormState<V> =
+        copy(enabled = enabled)
+
     fun <O> convert(converter: (value: V) -> O): FormFieldState<O> =
         FormFieldState(
             value = converter(value),
@@ -41,6 +45,7 @@ class FormFieldState<V>(
         errors: ValidationErrors = this.errors,
         dirty: Boolean = this.dirty,
         touched: Boolean = this.touched,
+        enabled: Boolean = this.enabled,
         validating: Boolean = this.validating,
         validationRequested: Boolean = this.validationRequested,
     ): FormFieldState<V> = FormFieldState(
@@ -48,6 +53,7 @@ class FormFieldState<V>(
         errors = errors,
         dirty = dirty,
         touched = touched,
+        enabled = enabled,
         validating = validating,
         validationRequested = validationRequested,
     )
