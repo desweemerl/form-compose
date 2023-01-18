@@ -4,18 +4,18 @@ import com.desweemerl.compose.form.Transformer
 import com.desweemerl.compose.form.ValidationErrors
 
 class FormGroupState(
-    val controls: Map<String, Control<FormState<Any>>>,
-    val formValue: Map<String, Any> = mapOf(),
+    val controls: Map<String, Control<FormState<Any?>>>,
+    val formValue: Map<String, Any?> = mapOf(),
     private val formErrors: ValidationErrors = listOf(),
     val formTouched: Boolean? = null,
     val formDirty: Boolean? = null,
     private var controlsDirty: Boolean = true,
     override val validating: Boolean = false,
     override val validationRequested: Boolean = false,
-) : FormState<Map<String, Any>> {
+) : FormState<Map<String, Any?>> {
     private var _errors: ValidationErrors? = null
 
-    override val value: Map<String, Any>
+    override val value: Map<String, Any?>
         get() = formValue.plus(controls.getValues())
 
     override val errors: ValidationErrors
@@ -40,7 +40,7 @@ class FormGroupState(
         validating=$validating validationRequested=$validationRequested
         formValue=$formValue formErrors=$formErrors controlsDirty=$controlsDirty}""".trimIndent()
 
-    override fun setValue(transformer: Transformer<Map<String, Any>>): FormGroupState =
+    override fun setValue(transformer: Transformer<Map<String, Any?>>): FormGroupState =
         copy(formValue = transformer(value))
 
     override fun markAsTouched(touched: Boolean): FormGroupState =
@@ -50,7 +50,7 @@ class FormGroupState(
         copy(formDirty = dirty)
 
     fun copy(
-        formValue: Map<String, Any> = this.formValue,
+        formValue: Map<String, Any?> = this.formValue,
         formErrors: ValidationErrors = this.formErrors,
         formTouched: Boolean? = this.formTouched,
         formDirty: Boolean? = this.formDirty,

@@ -29,4 +29,3 @@ interface FormState<V> {
                     && validationRequested == other.validationRequested
         }
 }
-

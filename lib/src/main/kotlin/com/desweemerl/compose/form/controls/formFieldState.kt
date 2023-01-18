@@ -26,6 +26,16 @@ class FormFieldState<V>(
     override fun markAsDirty(dirty: Boolean): FormState<V> =
         copy(dirty = dirty)
 
+    fun <O> convert(converter: (value: V) -> O): FormFieldState<O> =
+        FormFieldState(
+            value = converter(value),
+            errors = errors,
+            dirty = dirty,
+            touched = touched,
+            validating = validating,
+            validationRequested = validationRequested,
+        )
+
     fun copy(
         value: V = this.value,
         errors: ValidationErrors = this.errors,
@@ -55,4 +65,8 @@ inline fun <V> whenTouched(crossinline transformer: Transformer<FormFieldState<V
     } else {
         state
     }
+}
+
+fun <V> errorsWhenTouched(state: FormFieldState<V>): FormFieldState<V> {
+    return if (state.touched) state else state.copy(errors = listOf())
 }
