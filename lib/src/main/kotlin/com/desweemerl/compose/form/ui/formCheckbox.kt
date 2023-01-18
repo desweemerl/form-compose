@@ -42,7 +42,7 @@ fun FormCheckbox(
             Checkbox(
                 checked = state.value,
                 onCheckedChange = { fieldValue ->
-                    onStateChanged(state.copy(value = fieldValue, dirty = true))
+                    onStateChanged(state.copy(value = fieldValue, touched = true, dirty = true))
                 },
                 modifier = Modifier
                     .testTag(testTag)
