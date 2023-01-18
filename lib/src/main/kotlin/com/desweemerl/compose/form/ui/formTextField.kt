@@ -14,13 +14,15 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import com.desweemerl.compose.form.*
+import com.desweemerl.compose.form.controls.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun FormTextField(
-    state: IFormState<String>,
-    onStateChanged: (IFormState<String>) -> Unit = {},
+    state: FormFieldState<String>,
+    onStateChanged: (FormFieldState<String>) -> Unit = {},
     label: String? = null,
-    error: @Composable (IFormState<String>) -> Unit = { FormFieldError(it) },
+    error: @Composable (FormFieldState<String>) -> Unit = { FormFieldError(it) },
     singleLine: Boolean = true,
     password: Boolean = false,
     onEnter: (() -> Unit)? = null,
@@ -51,11 +53,7 @@ fun FormTextField(
             keyboardActions = keyboardActions,
             visualTransformation = visualTransformation,
             onValueChange = { fieldValue ->
-                onStateChanged(
-                    state
-                        .withValue(fieldValue)
-                        .markAsDirty()
-                )
+                onStateChanged(state.copy(value = fieldValue, dirty = true))
             },
             modifier = Modifier
                 .testTag(testTag)
@@ -63,7 +61,7 @@ fun FormTextField(
                     if (!focused && focusState.isFocused) {
                         focused = true
                     } else if (focused && !focusState.isFocused && !state.touched) {
-                        onStateChanged(state.markAsTouched())
+                        onStateChanged(state.copy(touched = true))
                     }
                 }
         )
@@ -72,24 +70,30 @@ fun FormTextField(
     }
 }
 
+val errorsWhenTouched: Transformer<FormFieldState<String>> =
+    { state -> if (state.touched) state else state.copy(errors = listOf()) }
+
 @Suppress("UNCHECKED_CAST")
 @Composable
-fun IFormControl<*>?.asTextField(
+fun Control<*>?.asTextField(
     label: String? = null,
     singleLine: Boolean = true,
     password: Boolean = false,
-    transformer: Transformer<String> = Transformer.default(),
-    error: @Composable (IFormState<String>) -> Unit = { FormFieldError(it) },
+    transformer: Transformer<FormFieldState<String>> = errorsWhenTouched,
+    error: @Composable (FormState<String>) -> Unit = { FormFieldError(it) },
     onEnter: (() -> Unit)? = null,
     testTag: String = "",
-) = (this as? FormControl<String>)?.let {
+) = (this as? FormFieldControl<String>)?.let {
     var state by asMutableState()
+    val scope = rememberCoroutineScope()
 
     FormTextField(
-        state = transformer.transform(state),
+        state = transformer(state),
         onStateChanged = { newState ->
             state = newState
-            update(newState)
+            scope.launch {
+                transform { newState }
+            }
         },
         label = label,
         error = error,
@@ -109,7 +113,7 @@ fun PreviewFormTextField() {
 @Preview
 @Composable
 fun PreviewFormPasswordField() {
-    val state = FormState("Secret")
+    val state = FormFieldState("Secret")
 
     FormTextField(state = state, password = true)
 }
@@ -117,7 +121,7 @@ fun PreviewFormPasswordField() {
 @Preview
 @Composable
 fun PreviewFormTextFieldWithError() {
-    val state = FormState(
+    val state = FormFieldState(
         "My value",
         touched = true,
         errors = listOf(ValidationError("preview", "preview error", Path()))

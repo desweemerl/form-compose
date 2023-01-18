@@ -1,18 +1,18 @@
 package com.desweemerl.compose.form.ui
 
 import androidx.compose.runtime.*
-import com.desweemerl.compose.form.FormStateCallback
-import com.desweemerl.compose.form.IFormControl
-import com.desweemerl.compose.form.IFormState
+import com.desweemerl.compose.form.Callback
+import com.desweemerl.compose.form.controls.Control
+import com.desweemerl.compose.form.controls.FormState
 import kotlinx.coroutines.launch
 
 @Composable
-fun <V> IFormControl<V>.asMutableState(): MutableState<IFormState<V>> {
+fun <S, V> Control<S>.asMutableState(): MutableState<S> where S : FormState<V> {
     val state = remember() { mutableStateOf(this.state) }
     val scope = rememberCoroutineScope()
 
     DisposableEffect(key1 = Unit) {
-        val callback: FormStateCallback<V> = { newState ->
+        val callback: Callback<S> = { newState ->
             if (!state.value.matches(newState)) {
                 state.value = newState
             }

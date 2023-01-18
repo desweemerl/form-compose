@@ -5,13 +5,13 @@ import kotlinx.coroutines.sync.withLock
 
 typealias Callback<V> = suspend (V) -> Unit
 
-interface ICallbacks<V> {
+interface Callbacks<V> {
     suspend fun register(callback: Callback<V>)
     suspend fun unregister(callback: Callback<V>)
     suspend fun broadcast(value: V)
 }
 
-class Callbacks<V>(initialCallbacks: List<Callback<V>>? = null) : ICallbacks<V> {
+class CallbacksImpl<V>(initialCallbacks: List<Callback<V>>? = null) : Callbacks<V> {
     private val callbacksMutex = Mutex()
     private val callbacks = initialCallbacks?.toMutableList() ?: mutableListOf()
 
