@@ -1,6 +1,8 @@
 package com.desweemerl.compose.form.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.OutlinedTextField
@@ -13,7 +15,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
-import com.desweemerl.compose.form.*
+import androidx.compose.ui.unit.dp
+import com.desweemerl.compose.form.Path
+import com.desweemerl.compose.form.Transformer
+import com.desweemerl.compose.form.ValidationError
 import com.desweemerl.compose.form.controls.*
 import kotlinx.coroutines.launch
 
@@ -43,7 +48,10 @@ fun FormTextField(
         visualTransformation = PasswordVisualTransformation()
     }
 
-    Column {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(bottom = 5.dp)
+    ) {
         OutlinedTextField(
             label = label?.let { { Text(text = label) } },
             singleLine = singleLine,
@@ -57,6 +65,7 @@ fun FormTextField(
             },
             modifier = Modifier
                 .testTag(testTag)
+                .fillMaxWidth()
                 .onFocusChanged { focusState ->
                     if (!focused && focusState.isFocused) {
                         focused = true

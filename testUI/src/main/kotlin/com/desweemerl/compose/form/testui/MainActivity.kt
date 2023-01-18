@@ -4,14 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.desweemerl.compose.form.controls.mergeErrors
@@ -32,7 +32,10 @@ class MainActivity : ComponentActivity() {
 
             val formState by form.asMutableState()
 
-            Column {
+            Column(modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 10.dp, horizontal = 5.dp)
+            ) {
                 form.getControl("password").asTextField(password = true)
 
                 form.getControl("confirmation_password").asTextField(
@@ -40,7 +43,7 @@ class MainActivity : ComponentActivity() {
                     transformer = pipe(mergeErrors { formState }, errorsWhenTouched),
                 )
 
-                Row {
+                Row(modifier = Modifier.align(Alignment.CenterHorizontally)) {
                     Button(onClick = {
                         scope.launch {
                             form.markAsTouched()
