@@ -100,7 +100,7 @@ class FormGroupControl(
         validationJob?.cancel()
         validationJob = scope.launch {
             updateState { state ->
-                state.copy(validating = true, validationRequested = true)
+                state.copy(validating = true, validationRequested = validationRequested)
             }
 
             try {
