@@ -169,7 +169,7 @@ class FormGroupBuilder {
         return this
     }
 
-    fun withValidator(validator: AbstractValidator<FormGroupState>): FormGroupBuilder {
+    fun withValidator(validator: Validator<FormGroupState>): FormGroupBuilder {
         validators.add(validator)
         return this
     }
