@@ -75,7 +75,7 @@ class FormControl<V>(
         validationJob = scope.launch {
             val initialState = updateState { state ->
                 state
-                    .markAsValidating(validationRequested)
+                    .markAsValidating()
                     .requestValidation(validationRequested)
             }
 
@@ -104,9 +104,7 @@ class FormControl<V>(
                 updateState { state ->
                     state
                         .markAsValidating(false)
-                        .requestValidation(
-                            state.validationRequested && ex is CancellationException
-                        )
+                        .requestValidation(false)
                 }
                 throw ex
             }
