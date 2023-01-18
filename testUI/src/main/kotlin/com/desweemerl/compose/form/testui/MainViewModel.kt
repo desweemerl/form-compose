@@ -8,7 +8,7 @@ import com.desweemerl.compose.form.validators.ValidatorRequired
 
 
 val matchPasswordValidation = object : FormValidator<Map<String, Any>>(message = "") {
-    override suspend fun validate(state: FormState<Map<String, Any>>): ValidationErrors? {
+    override suspend fun validate(state: IFormState<Map<String, Any>>): ValidationErrors? {
         val password = state.value.get("password") as? String ?: ""
         val confirmPassword = state.value.get("confirmation_password") as? String ?: ""
         return if (password.isNotEmpty() && password != confirmPassword) {

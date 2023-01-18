@@ -17,10 +17,10 @@ import com.desweemerl.compose.form.*
 
 @Composable
 fun FormTextField(
-    state: FormState<String>,
-    onStateChanged: (FormState<String>) -> Unit = {},
+    state: IFormState<String>,
+    onStateChanged: (IFormState<String>) -> Unit = {},
     label: String? = null,
-    error: @Composable (FormState<String>) -> Unit = { FormFieldError(it) },
+    error: @Composable (IFormState<String>) -> Unit = { FormFieldError(it) },
     singleLine: Boolean = true,
     password: Boolean = false,
     onEnter: (() -> Unit)? = null,
@@ -79,7 +79,7 @@ fun IFormControl<*>?.asTextField(
     singleLine: Boolean = true,
     password: Boolean = false,
     transformer: Transformer<String> = Transformer.default(),
-    error: @Composable (FormState<String>) -> Unit = { FormFieldError(it) },
+    error: @Composable (IFormState<String>) -> Unit = { FormFieldError(it) },
     onEnter: (() -> Unit)? = null,
     testTag: String = "",
 ) = (this as? FormControl<String>)?.let {

@@ -1,68 +1,23 @@
 package com.desweemerl.compose.form
 
-class FormState<V>(
-    val value: V,
-    val errors: ValidationErrors = listOf(),
-    val dirty: Boolean = false,
-    val touched: Boolean = false,
-    val validating: Boolean = false,
-    val validationRequested: Boolean = false,
-) {
-    fun withValue(newValue: V): FormState<V> = FormState(
-        value = newValue,
-        errors = errors,
-        dirty = dirty,
-        touched = touched,
-        validating = validating,
-        validationRequested = validationRequested,
-    )
+interface IFormState<V> {
+    val value: V
+    val errors: ValidationErrors
 
-    fun withErrors(newErrors: ValidationErrors): FormState<V> = FormState(
-        value = value,
-        errors = newErrors,
-        dirty = dirty,
-        touched = touched,
-        validating = validating,
-        validationRequested = validationRequested,
-    )
+    fun withValue(newValue: V): IFormState<V>
+    fun withErrors(newErrors: ValidationErrors): IFormState<V>
 
-    fun markAsValidating(newValidating: Boolean = true): FormState<V> = FormState(
-        value = value,
-        errors = errors,
-        dirty = dirty,
-        touched = touched,
-        validating = newValidating,
-        validationRequested = validationRequested,
-    )
+    val dirty: Boolean
+    val touched: Boolean
+    val validating: Boolean
+    val validationRequested: Boolean
 
-    fun requestValidation(requested: Boolean = true): FormState<V> = FormState(
-        value = value,
-        errors = errors,
-        dirty = dirty,
-        touched = touched,
-        validating = validating,
-        validationRequested = requested,
-    )
+    fun markAsValidating(newValidating: Boolean = true): IFormState<V>
+    fun markAsTouched(newTouched: Boolean = true): IFormState<V>
+    fun markAsDirty(newDirty: Boolean = true): IFormState<V>
+    fun requestValidation(requested: Boolean = true): IFormState<V>
 
-    fun markAsTouched(): FormState<V> = FormState(
-        value = value,
-        errors = errors,
-        dirty = dirty,
-        touched = true,
-        validating = validating,
-        validationRequested = validationRequested,
-    )
-
-    fun markAsDirty(): FormState<V> = FormState(
-        value = value,
-        errors = errors,
-        dirty = true,
-        touched = touched,
-        validating = validating,
-        validationRequested = validationRequested,
-    )
-
-    fun matches(other: FormState<V>?): Boolean =
+    fun matches(other: IFormState<V>?): Boolean =
         if (other == null) {
             true
         } else {
@@ -73,9 +28,79 @@ class FormState<V>(
                     && validating == other.validating
                     && validationRequested == other.validationRequested
         }
+}
+
+open class FormState<V>(
+    override val value: V,
+    override val errors: ValidationErrors = listOf(),
+    override val dirty: Boolean = false,
+    override val touched: Boolean = false,
+    override val validating: Boolean = false,
+    override val validationRequested: Boolean = false,
+) : IFormState<V> {
+    override fun withValue(newValue: V): IFormState<V> =
+        FormState<V>(
+            value = newValue,
+            errors = errors,
+            dirty = dirty,
+            touched = touched,
+            validating = validating,
+            validationRequested = validationRequested,
+        )
+
+    override fun withErrors(newErrors: ValidationErrors): IFormState<V> =
+        FormState(
+            value = value,
+            errors = newErrors,
+            dirty = dirty,
+            touched = touched,
+            validating = validating,
+            validationRequested = validationRequested,
+        )
+
+    override fun markAsValidating(newValidating: Boolean): IFormState<V> =
+        FormState(
+            value = value,
+            errors = errors,
+            dirty = dirty,
+            touched = touched,
+            validating = newValidating,
+            validationRequested = validationRequested,
+        )
+
+    override fun requestValidation(requested: Boolean): IFormState<V> =
+        FormState(
+            value = value,
+            errors = errors,
+            dirty = dirty,
+            touched = touched,
+            validating = validating,
+            validationRequested = requested,
+        )
+
+    override fun markAsTouched(newTouched: Boolean): IFormState<V> =
+        FormState(
+            value = value,
+            errors = errors,
+            dirty = dirty,
+            touched = newTouched,
+            validating = validating,
+            validationRequested = validationRequested,
+        )
+
+    override fun markAsDirty(newDirty: Boolean): IFormState<V> =
+        FormState(
+            value = value,
+            errors = errors,
+            dirty = true,
+            touched = touched,
+            validating = validating,
+            validationRequested = validationRequested,
+        )
 
     override fun toString(): String = """
         FormState{value=$value errors=$errors
         dirty=$dirty touched=$touched
         validating=$validating validationRequested=$validationRequested}""".trimIndent()
 }
+
