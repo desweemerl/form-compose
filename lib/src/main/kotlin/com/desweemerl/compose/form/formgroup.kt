@@ -94,9 +94,9 @@ class FormGroupControl(
                     scope.launch {
                         validators.map { validator ->
                             launch {
-                                validator.validate(initialState)?.let { error ->
+                                validator.validate(initialState)?.let { validationErrors ->
                                     mutex.withLock {
-                                        errors.add(error)
+                                        errors.addAll(validationErrors)
                                     }
                                 }
                             }
