@@ -5,6 +5,4 @@ import com.desweemerl.compose.form.*
 typealias IFormValidator<V> = IValidator<FormState<V>>
 typealias FormValidators<V> = Array<IFormValidator<V>>
 
-abstract class FormValidator<V>(
-    override val message: String,
-) : BaseValidator<FormState<V>>(message)
+abstract class FormValidator<V>(open val message: String) : IValidator<FormState<V>>

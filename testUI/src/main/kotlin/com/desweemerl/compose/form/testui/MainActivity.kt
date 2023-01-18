@@ -19,14 +19,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val matchPasswordValidation = object : FormValidator<Map<String, Any>>(message = "") {
-            override suspend fun validate(state: FormState<Map<String, Any>>): ValidationError? {
+            override suspend fun validate(state: FormState<Map<String, Any>>): ValidationErrors? {
                 val password = state.value.get("password") as? String ?: ""
                 val confirmPassword = state.value.get("confirmation_password") as? String ?: ""
                 return if (password.isNotEmpty() && password != confirmPassword) {
-                    ValidationError(
+                    listOf(ValidationError(
                         "password",
                         "Passwords mismatch",
-                    )
+                    ))
                 } else {
                     null
                 }

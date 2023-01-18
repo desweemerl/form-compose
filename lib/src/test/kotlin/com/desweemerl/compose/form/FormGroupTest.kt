@@ -1,7 +1,6 @@
 package com.desweemerl.compose.form
 
-import com.desweemerl.compose.form.validators.ValidatorPattern
-import com.desweemerl.compose.form.validators.ValidatorRequired
+import com.desweemerl.compose.form.validators.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
