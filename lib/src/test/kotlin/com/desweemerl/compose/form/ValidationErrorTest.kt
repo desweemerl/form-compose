@@ -1,13 +1,10 @@
 package com.desweemerl.compose.form
 
-import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.junit.runner.RunWith
 
-@RunWith(AndroidJUnit4::class)
+
 class ValidationErrorTest {
 
     @Test
