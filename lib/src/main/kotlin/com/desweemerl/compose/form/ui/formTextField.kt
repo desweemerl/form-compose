@@ -6,6 +6,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import com.desweemerl.compose.form.FormControl
 import com.desweemerl.compose.form.FormState
@@ -14,13 +15,15 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun FormTextField(
-    flowState: FormControl<String>
+    flowState: FormControl<String>,
+    testTag: String = "",
 ) {
     val state = flowState.state.collectAsState()
 
     FormTextField(
         state = state.value,
         onStateChanged = flowState::update,
+        testTag = testTag,
     )
 }
 
@@ -28,6 +31,7 @@ fun FormTextField(
 fun FormTextField(
     state: IFormState<String>,
     onStateChanged: (IFormState<String>) -> Unit = {},
+    testTag: String = "",
 )  {
     val coroutineScope = rememberCoroutineScope()
 
@@ -44,7 +48,9 @@ fun FormTextField(
                 )
             }
         },
-        modifier = Modifier.onFocusChanged {
+        modifier = Modifier
+            .testTag(testTag)
+            .onFocusChanged {
             coroutineScope.launch {
                 onStateChanged(state.markAsTouched())
             }

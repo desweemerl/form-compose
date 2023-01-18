@@ -11,9 +11,10 @@ dependencyResolutionManagement{
     google()
     mavenCentral()
     jcenter()
-    maven { url 'https://jitpack.io' }
+    maven { url "https://jitpack.io" }
   }
 }
 
-rootProject.name = 'formcompose'
-include('lib')
+rootProject.name = "formcompose"
+include "lib"
+include "testUI"
