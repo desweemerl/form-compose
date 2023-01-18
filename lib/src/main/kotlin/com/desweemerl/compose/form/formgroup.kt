@@ -11,63 +11,79 @@ typealias FormGroupState = FormState<Map<String, Any>>
 fun Map<String, IFormControl<Any>>.getValues(): Map<String, Any> =
     entries.associate { entry -> Pair(entry.key, entry.value.state.value) }
 
+fun Map<String, IFormControl<Any>>.getErrors(): ValidationErrors =
+    entries
+        .filter { entry -> entry.value.state.errors.isNotEmpty() }
+        .map { entry -> entry.value.state.errors.prependPath(entry.key) }.flatten()
 
-class FormGroupControl(
+interface IFormGroupControl : IFormControl<Map<String, Any>> {
+    fun getControl(key: String): IFormControl<Any>?
+}
+
+internal class FormGroupControl(
     val controls: Map<String, IFormControl<Any>> = mapOf(),
     override val validators: FormValidators<Map<String, Any>> = arrayOf(),
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
-) : AbstractFormControl<Map<String, Any>>(FormState(value = controls.getValues())) {
-    private var syncJob: Job
+) : AbstractFormControl<Map<String, Any>>(FormState(value = mapOf())),
+    IFormGroupControl {
     private var transformJob: Job? = null
     private var validationJob: Job? = null
 
+    private val controlMutex = Mutex()
+    private var controlValues = controls.getValues().toMutableMap()
+
     init {
-        syncJob = scope.launch {
-            controls.entries.forEach { entry ->
-                scope.launch {
-                    entry.value.registerCallback { controlState ->
-                        mergeControlState(entry.key, controlState)
-                        if (!state.validating) {
-                            liveValidate()
+        scope.launch {
+            controls.entries.map { entry ->
+                entry.value.registerCallback { controlState ->
+                    try {
+                        scope.launch {
+                            controlMutex.withLock {
+                                controlValues[entry.key] = controlState.value
+                            }
+
+                            if (!controlState.validating && !_state.validating) {
+                                liveValidate()
+                            } else {
+                                broadcastState(state)
+                            }
                         }
+                    } catch (_: Exception) {
                     }
                 }
             }
         }
     }
 
-    fun getControl(key: String): IFormControl<Any>? = controls[key]
+    override fun getControl(key: String): IFormControl<Any>? = controls[key]
 
-    private suspend fun mergeControlState(
-        key: String,
-        controlState: FormState<Any>
-    ): FormGroupState = updateState { state ->
-        val newValue = state.value.plus(Pair(key, controlState.value))
-        val newErrors = state.errors.replace(key, controlState.errors)
-
-        state.withValue(newValue).withErrors(newErrors)
-    }
+    override val state
+        get() = FormState(
+            value = _state.value + controlValues,
+            errors = _state.errors + controls.getErrors(),
+        )
 
     override suspend fun transformValue(transform: (value: Map<String, Any>) -> Map<String, Any>): FormGroupState {
         transformJob?.cancel()
         transformJob = scope.launch {
             val newValue = transform(state.value)
-            val entries = newValue.entries
-                .filter { entry -> controls.containsKey(entry.key) }
+            val controlEntries = newValue.entries.filter { entry -> controls.containsKey(entry.key) }
+            val formValue = newValue.filterKeys { key -> !controls.containsKey(key) }
 
-            entries.map { entry ->
+            controlMutex.withLock {
+                controlValues = newValue.filterKeys { key -> controls.containsKey(key) }.toMutableMap()
+            }
+
+            updateState { formState ->
+                formState.withValue(formValue)
+            }
+
+            controlEntries.map { entry ->
                 launch {
                     controls[entry.key]?.transformValue { entry.value }
                 }
             }.joinAll()
 
-            updateState { state ->
-                val patchValue = state.value.plus(
-                    newValue.filterKeys { key -> !controls.containsKey(key) }
-                )
-
-                state.withValue(patchValue)
-            }
             liveValidate()
         }
         transformJob?.join()
@@ -80,18 +96,20 @@ class FormGroupControl(
     private suspend fun liveValidate(validationRequested: Boolean = false): FormGroupState {
         validationJob?.cancel()
         validationJob = scope.launch {
-            val initialState = updateState { state ->
-                state
+            updateState { formState ->
+                formState
                     .markAsValidating()
                     .requestValidation(validationRequested)
             }
+
+            val initialState = state
 
             try {
                 val mutex = Mutex()
                 val errors = mutableListOf<ValidationError>()
 
                 val jobs = mutableListOf(
-                    scope.launch {
+                    launch {
                         validators.map { validator ->
                             launch {
                                 validator.validate(initialState)?.let { validationErrors ->
@@ -106,43 +124,25 @@ class FormGroupControl(
 
                 if (validationRequested) {
                     jobs.add(
-                        scope.launch {
-                            controls.entries.map { entry ->
-                                launch {
-                                    val controlErrors = entry.value.validate().errors
-                                    mutex.withLock {
-                                        val newControlErrors = controlErrors.map { error ->
-                                            ValidationError(
-                                                type = error.type,
-                                                message = error.message,
-                                                path = Path(entry.key).plus(error.path),
-                                            )
-                                        }
-                                        errors.addAll(newControlErrors)
-                                    }
-                                }
-                            }.joinAll()
+                        launch {
+                            controls.entries
+                                .map { entry -> launch { entry.value.validate() } }
+                                .joinAll()
                         }
                     )
                 }
 
                 jobs.joinAll()
 
-                updateState { state ->
-                    val newErrors = if (validationRequested) {
-                        errors
-                    } else {
-                        state.errors.filter { error -> !error.path.isEmpty() } + errors
-                    }
-
-                    state
-                        .withErrors(newErrors)
+                updateState { formState ->
+                    formState
+                        .withErrors(errors)
                         .markAsValidating(false)
                         .requestValidation(false)
                 }
             } catch (ex: Exception) {
-                updateState { state ->
-                    state
+                updateState { formState ->
+                    formState
                         .markAsValidating(false)
                         .requestValidation(false)
                 }
@@ -159,7 +159,7 @@ class FormGroupBuilder {
     private var controls = mutableMapOf<String, IFormControl<Any>>()
     private val validators = mutableListOf<FormValidator<Map<String, Any>>>()
 
-    fun <V> withControl(key: String, state: IFormControl<V>): FormGroupBuilder {
+    fun withControl(key: String, state: IFormControl<*>): FormGroupBuilder {
         @Suppress("UNCHECKED_CAST")
         controls[key] = state as IFormControl<Any>
         return this
@@ -170,7 +170,7 @@ class FormGroupBuilder {
         return this
     }
 
-    fun build(): FormGroupControl = FormGroupControl(
+    fun build(): IFormGroupControl = FormGroupControl(
         controls = controls,
         validators = validators.toTypedArray(),
     )

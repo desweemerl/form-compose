@@ -11,9 +11,9 @@ interface ICallbacks<V> {
     suspend fun broadcast(value: V)
 }
 
-class Callbacks<V> : ICallbacks<V> {
+class Callbacks<V>(initialCallbacks: List<Callback<V>>? = null) : ICallbacks<V> {
     private val callbacksMutex = Mutex()
-    private val callbacks = mutableListOf<Callback<V>>()
+    private val callbacks = initialCallbacks?.toMutableList() ?: mutableListOf()
 
     override suspend fun register(callback: Callback<V>): Unit =
         callbacksMutex.withLock {

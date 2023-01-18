@@ -23,6 +23,12 @@ class ValidationError(
     override fun hashCode(): Int = toString().hashCode()
 }
 
+fun ValidationErrors.prependPath(path: String): ValidationErrors =
+    prependPath(Path(path))
+
+fun ValidationErrors.prependPath(path: Path): ValidationErrors =
+    map{ error -> ValidationError(type = error.type, message = error.message, path = path.plus(error.path))}
+
 fun ValidationErrors.replace(path: String, errors: ValidationErrors): ValidationErrors =
     replace(Path(path), errors)
 
