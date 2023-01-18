@@ -40,7 +40,7 @@ class Path(vararg varParts: String) {
 
     fun includePath(path: Path): Boolean =
         path.parts.withIndex().all { iValue ->
-            iValue.value == parts[iValue.index]
+            parts.size > iValue.index && iValue.value == parts[iValue.index]
         }
 
     override fun equals(other: Any?): Boolean =

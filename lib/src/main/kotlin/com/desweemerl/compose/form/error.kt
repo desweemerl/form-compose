@@ -23,12 +23,10 @@ class ValidationError(
     override fun hashCode(): Int = toString().hashCode()
 }
 
-fun ValidationErrors.merge(errors: ValidationErrors): ValidationErrors = merge(Path(), errors)
+fun ValidationErrors.replace(path: String, errors: ValidationErrors): ValidationErrors =
+    replace(Path(path), errors)
 
-fun ValidationErrors.merge(path: String, errors: ValidationErrors): ValidationErrors =
-    merge(Path(path), errors)
-
-fun ValidationErrors.merge(path: Path, errors: ValidationErrors): ValidationErrors =
+fun ValidationErrors.replace(path: Path, errors: ValidationErrors): ValidationErrors =
     filter { error ->
         (path.isEmpty() && !error.path.isEmpty())
                 || (!path.isEmpty() && !error.path.includePath(path))
