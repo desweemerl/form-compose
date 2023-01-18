@@ -8,7 +8,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 fun Map<String, Control<FormState<Any?>>>.getValues(): Map<String, Any?> =
-    entries.associate { entry -> Pair(entry.key, entry.value.state.value) }
+    entries
+        .filter { entry -> entry.value.state.enabled }
+        .associate { entry -> Pair(entry.key, entry.value.state.value) }
 
 fun Map<String, Control<FormState<Any?>>>.getErrors(): ValidationErrors =
     entries
@@ -20,6 +22,9 @@ fun Map<String, Control<FormState<Any?>>>.touched(): Boolean =
 
 fun Map<String, Control<FormState<Any?>>>.dirty(): Boolean =
     values.any { control -> control.state.dirty }
+
+fun Map<String, Control<FormState<Any?>>>.enabled(): Boolean =
+    values.any { control -> control.state.enabled }
 
 class FormGroupControl(
     private val controls: Map<String, AbstractFormControl<FormState<Any?>, Any?>> = mapOf(),
@@ -87,13 +92,19 @@ class FormGroupControl(
                                 filter(
                                     { newState.formDirty != null },
                                     { controlState -> controlState.markAsDirty(newState.formDirty!!) }),
+                                filter(
+                                    { newState.formEnabled != null },
+                                    { controlState -> controlState.enable(newState.formEnabled!!) }),
                             )
                         )
                     }
                 }
                 .joinAll()
 
-            updateAndNotify { newState.copy(formTouched = null, formDirty = null) }
+            updateAndNotify {
+                newState.copy(formTouched = null, formDirty = null, formEnabled = null)
+            }
+
             liveValidate()
         }
         transformJob?.join()
@@ -106,6 +117,14 @@ class FormGroupControl(
 
     private suspend fun liveValidate(validationRequested: Boolean = false): FormGroupState {
         validationJob?.cancelAndJoin()
+
+        if (!state.enabled) {
+            validationJob = null
+            return updateAndNotify { state ->
+                state.copy(formErrors = listOf())
+            }
+        }
+
         validationJob = scope.launch {
             updateAndNotify { state ->
                 state.copy(validating = true, validationRequested = validationRequested)

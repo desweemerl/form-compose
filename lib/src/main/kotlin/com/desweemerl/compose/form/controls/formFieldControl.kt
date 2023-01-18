@@ -47,6 +47,14 @@ open class FormFieldControl<V>(
 
     private suspend fun liveValidate(validationRequested: Boolean = false): FormFieldState<V> {
         validationJob?.cancelAndJoin()
+
+        if (!state.enabled) {
+            validationJob = null
+            return updateAndNotify { state ->
+                state.copy(errors = listOf())
+            }
+        }
+
         validationJob = scope.launch {
             val initialState = updateAndNotify { state ->
                 state.copy(

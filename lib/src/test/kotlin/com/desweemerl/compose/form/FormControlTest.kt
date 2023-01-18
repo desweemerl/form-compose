@@ -60,4 +60,12 @@ class FormFieldControlValidationTest :
         runTest {
             assertMatchErrors(requiredError, control.validate().errors)
         }
+
+    @Test
+    @ExperimentalCoroutinesApi
+    fun `When a disabled control is initialized with a wrong value expect validation return no error`() =
+        runTest {
+            control.enable(false)
+            assertMatchErrors(listOf(), control.validate().errors)
+        }
 }

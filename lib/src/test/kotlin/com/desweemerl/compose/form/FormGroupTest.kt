@@ -93,6 +93,14 @@ class NestedFormGroupTest : FormGroupControlTest(
 
     @Test
     @ExperimentalCoroutinesApi
+    fun `When a disabled form is initialized expect state is empty`() = runTest {
+        control.enable(false)
+
+        assertMatch(mapOf(), state.value)
+    }
+
+    @Test
+    @ExperimentalCoroutinesApi
     fun `When the child form is updated expect state has the new value`() = runTest {
         val expectation = mapOf(
             Pair("first_name", ""),
@@ -178,6 +186,16 @@ class FormGroupValidationTest : FormGroupControlTest(
 
     @Test
     @ExperimentalCoroutinesApi
+    fun `When a disabled control has errors and validation is done on the form expect states on form and control have no errors`() =
+        runTest {
+            control.enable(false)
+
+            assertMatchErrors(listOf(), control.validate().errors)
+            assertMatchErrors(listOf(), state.errors)
+        }
+
+    @Test
+    @ExperimentalCoroutinesApi
     fun `When a control is updated with wrong value expect states on form and control have errors of the control`() =
         runTest {
             val controlErrors = listOf(
@@ -197,6 +215,19 @@ class FormGroupValidationTest : FormGroupControlTest(
 
     @Test
     @ExperimentalCoroutinesApi
+    fun `When a disabled control is updated with wrong value expect states on form and control have no errors`() =
+        runTest {
+            control.enable(false)
+            
+            assertMatchErrors(
+                listOf(),
+                getTextField("first_name").setValue { "héllo!>" }.errors
+            )
+            assertMatchErrors(listOf(), state.errors)
+        }
+
+    @Test
+    @ExperimentalCoroutinesApi
     fun `When a control is updated with wrong value and validation is done on the form expect form state has all errors`() =
         runTest {
             val formErrors = listOf(
@@ -207,6 +238,16 @@ class FormGroupValidationTest : FormGroupControlTest(
             getTextField("first_name").setValue { "héllo!>" }
             assertMatchErrors(formErrors, control.validate().errors)
             assertMatchErrors(formErrors, state.errors)
+        }
+
+    @Test
+    @ExperimentalCoroutinesApi
+    fun `When a disabled control is updated with wrong value and validation is done on the form expect form state has no errors`() =
+        runTest {
+            control.enable(false)
+            getTextField("first_name").setValue { "héllo!>" }
+            assertMatchErrors(listOf(), control.validate().errors)
+            assertMatchErrors(listOf(), state.errors)
         }
 }
 
