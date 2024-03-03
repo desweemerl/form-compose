@@ -1,9 +1,13 @@
 package com.desweemerl.compose.form.testui
 
-import androidx.compose.ui.test.*
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
-import com.desweemerl.compose.form.textControl
-import com.desweemerl.compose.form.ui.FormTextField
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
+import com.desweemerl.compose.form.controls.textControl
+import com.desweemerl.compose.form.ui.asTextField
 import org.junit.Rule
 import org.junit.Test
 
@@ -16,7 +20,7 @@ class FormTextFieldTest {
     fun valueTest() {
         val control = textControl("hello")
         composeTestRule.setContent {
-            FormTextField(control = control, testTag = "field1")
+            control.asTextField(testTag = "field1")
         }
         val node = composeTestRule.onNodeWithTag("field1")
         node.assertTextContains("hello")
